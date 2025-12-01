@@ -1,0 +1,18 @@
+# 工业数据查看系统配置文件
+# 复制此文件为 config.toml 并修改配置
+
+[database]
+# SQL Server 服务器地址
+server = "localhost"
+# SQL Server 端口
+port = 1433
+# 数据库名称
+database = "控制器数据库"
+# 用户名（SQL Server 认证）
+username = "sa"
+# 密码
+password = "your_password_here"
+
+[query]
+# 默认查询表名
+default_table = "历史表"

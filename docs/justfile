@@ -1,0 +1,30 @@
+# Industry Vis Documentation Justfile
+# https://github.com/casey/just
+
+# 默认命令：启动开发服务器
+default: dev
+
+# 安装依赖
+install:
+    npm install
+
+# 启动开发服务器
+dev:
+    npm run dev
+
+# 构建文档
+build:
+    npm run build
+
+# 预览构建后的文档
+preview:
+    npm run preview
+
+# 清理构建产物
+clean:
+    rm -rf .vitepress/dist
+    rm -rf .vitepress/cache
+
+# 更新依赖
+update:
+    npm update

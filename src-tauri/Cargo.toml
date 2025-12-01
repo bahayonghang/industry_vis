@@ -1,0 +1,43 @@
+[package]
+name = "industry-vis"
+version = "0.1.0"
+description = "工业数据查看系统"
+authors = ["you"]
+edition = "2021"
+
+[lib]
+name = "industry_vis_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+thiserror = "1"
+toml = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+
+# SQL Server
+tiberius = { version = "0.12", default-features = false, features = ["rustls", "chrono"] }
+tokio-util = { version = "0.7", features = ["compat"] }
+async-trait = "0.1"
+
+# Data processing
+polars = { version = "0.44", features = ["lazy", "csv", "dtype-datetime"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"

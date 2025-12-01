@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+target/
+
+# IDE
+.vscode/
+.idea/
+.claude/
+.windsurf/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# Tauri
+src-tauri/target/
+
+# Test coverage
+coverage/
+
+# VitePress docs
+docs/.vitepress/dist/
+docs/.vitepress/cache/
