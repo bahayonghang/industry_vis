@@ -3,6 +3,15 @@ import { ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import type { DataProcessingConfig, HistoryRecord, QueryParams, QueryResult } from '@/types'
 
+/**
+ * 将 Date 对象格式化为本地时间字符串（用于数据库查询）
+ * 格式：YYYY-MM-DDTHH:mm:ss.SSS（不带时区后缀）
+ */
+function formatLocalDateTime(date: Date): string {
+  const pad = (n: number, len = 2) => n.toString().padStart(len, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`
+}
+
 export const useDataStore = defineStore('data', () => {
   // State
   const records = ref<HistoryRecord[]>([])
@@ -40,8 +49,8 @@ export const useDataStore = defineStore('data', () => {
     
     try {
       const params: QueryParams = {
-        startTime: startTime.value.toISOString(),
-        endTime: endTime.value.toISOString(),
+        startTime: formatLocalDateTime(startTime.value),
+        endTime: formatLocalDateTime(endTime.value),
         tags: selectedTags.value.length > 0 ? selectedTags.value : undefined,
       }
       
