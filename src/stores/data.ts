@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import type { HistoryRecord, QueryParams, QueryResult } from '@/types'
+import type { DataProcessingConfig, HistoryRecord, QueryParams, QueryResult } from '@/types'
 
 export const useDataStore = defineStore('data', () => {
   // State
@@ -34,7 +34,7 @@ export const useDataStore = defineStore('data', () => {
     }
   }
 
-  const fetchData = async () => {
+  const fetchData = async (processingConfig?: DataProcessingConfig) => {
     loading.value = true
     error.value = null
     
@@ -45,7 +45,10 @@ export const useDataStore = defineStore('data', () => {
         tags: selectedTags.value.length > 0 ? selectedTags.value : undefined,
       }
       
-      const result = await invoke<QueryResult>('query_history', { params })
+      const result = await invoke<QueryResult>('query_history', { 
+        params,
+        processingConfig: processingConfig || null,
+      })
       records.value = result.records
       total.value = result.total
     } catch (e) {

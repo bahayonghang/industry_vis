@@ -1,121 +1,454 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { NTabs, NTabPane, NCard, NEmpty } from 'naive-ui'
+import { ref, computed, onMounted } from 'vue'
+import { 
+  NCard, 
+  NGrid, 
+  NGi, 
+  NButton, 
+  NIcon, 
+  NEmpty,
+  NStatistic,
+  NTag,
+  NSpin,
+  NModal,
+  NInput,
+  useMessage
+} from 'naive-ui'
+import { 
+  AddOutline, 
+  LayersOutline,
+  ServerOutline,
+  PricetagsOutline,
+  TimeOutline,
+  ChevronForwardOutline
+} from '@vicons/ionicons5'
 import MainLayout from '@/layouts/MainLayout.vue'
-import DataTable from '@/components/DataTable.vue'
-import TagSelector from '@/components/TagSelector.vue'
-import LineChart from '@/components/LineChart.vue'
-import KpiCards from '@/components/KpiCards.vue'
-import QueryToolbar from '@/components/QueryToolbar.vue'
-import { useDataStore } from '@/stores/data'
+import GroupEditView from '@/components/GroupEditView.vue'
+import { useTagGroupStore } from '@/stores/tagGroup'
+import { useConfigStore } from '@/stores/config'
 
-const dataStore = useDataStore()
-const activeTab = ref<'chart' | 'table'>('chart')
+const tagGroupStore = useTagGroupStore()
+const configStore = useConfigStore()
+const message = useMessage()
 
-onMounted(() => {
-  // 初始化加载标签
-  dataStore.fetchAvailableTags()
+// 当前视图状态
+const currentView = ref<'list' | 'edit'>('list')
+const editingGroupId = ref<string | null>(null)
+
+// 新建分组弹窗
+const showCreateModal = ref(false)
+const newGroupName = ref('')
+const creating = ref(false)
+
+// 计算属性
+const groups = computed(() => tagGroupStore.groups)
+const loading = computed(() => tagGroupStore.loading)
+const isConnected = computed(() => configStore.isConnected)
+const dbConfig = computed(() => configStore.config?.database)
+
+// 版本号
+const appVersion = '0.2.0'
+
+onMounted(async () => {
+  await tagGroupStore.loadGroups()
 })
+
+// 打开分组编辑
+function openGroup(groupId: string) {
+  editingGroupId.value = groupId
+  currentView.value = 'edit'
+}
+
+// 返回列表
+function handleBack() {
+  currentView.value = 'list'
+  editingGroupId.value = null
+}
+
+// 创建新分组
+async function handleCreate() {
+  if (!newGroupName.value.trim()) {
+    message.warning('请输入分组名称')
+    return
+  }
+  
+  creating.value = true
+  try {
+    const group = await tagGroupStore.createGroup(newGroupName.value.trim(), [])
+    if (group) {
+      message.success('分组创建成功')
+      showCreateModal.value = false
+      newGroupName.value = ''
+      // 打开新创建的分组
+      openGroup(group.id)
+    }
+  } finally {
+    creating.value = false
+  }
+}
+
+function openCreateModal() {
+  newGroupName.value = ''
+  showCreateModal.value = true
+}
+
+// 格式化时间
+function formatTime(timestamp: string): string {
+  const date = new Date(timestamp)
+  return date.toLocaleDateString('zh-CN', { 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 </script>
 
 <template>
   <MainLayout>
-    <div class="home-view">
-      <!-- 顶部工具栏 -->
-      <div class="toolbar-section">
-        <QueryToolbar />
-        
-        <!-- 标签选择器 -->
-        <div class="tag-selector-wrapper glass">
-          <TagSelector />
-        </div>
+    <!-- 分组编辑视图 -->
+    <GroupEditView 
+      v-if="currentView === 'edit' && editingGroupId"
+      :group-id="editingGroupId"
+      @back="handleBack"
+      @saved="handleBack"
+      @deleted="handleBack"
+    />
+    
+    <!-- 主页列表视图 -->
+    <div v-else class="home-view">
+      <!-- 页面标题 -->
+      <div class="page-header">
+        <h1 class="page-title">数据监控中心</h1>
+        <p class="page-subtitle">管理标签分组，查看历史数据趋势</p>
       </div>
       
-      <!-- KPI 概览卡片 -->
-      <KpiCards />
+      <!-- 系统状态卡片 -->
+      <div class="status-section">
+        <NGrid :cols="4" :x-gap="16" :y-gap="16" responsive="screen" item-responsive>
+          <NGi span="0:24 600:12 900:6">
+            <NCard class="stat-card glass-card" :bordered="false">
+              <NStatistic label="数据库状态">
+                <template #prefix>
+                  <NIcon :component="ServerOutline" :size="20" />
+                </template>
+                <NTag :type="isConnected ? 'success' : 'error'" size="small">
+                  {{ isConnected ? '已连接' : '未连接' }}
+                </NTag>
+              </NStatistic>
+              <div v-if="isConnected && dbConfig" class="stat-detail">
+                {{ dbConfig.server }}:{{ dbConfig.port }}
+              </div>
+            </NCard>
+          </NGi>
+          
+          <NGi span="0:24 600:12 900:6">
+            <NCard class="stat-card glass-card" :bordered="false">
+              <NStatistic label="分组数量" :value="groups.length">
+                <template #prefix>
+                  <NIcon :component="LayersOutline" :size="20" />
+                </template>
+              </NStatistic>
+            </NCard>
+          </NGi>
+          
+          <NGi span="0:24 600:12 900:6">
+            <NCard class="stat-card glass-card" :bordered="false">
+              <NStatistic label="监控标签" :value="groups.reduce((sum, g) => sum + g.tags.length, 0)">
+                <template #prefix>
+                  <NIcon :component="PricetagsOutline" :size="20" />
+                </template>
+              </NStatistic>
+            </NCard>
+          </NGi>
+          
+          <NGi span="0:24 600:12 900:6">
+            <NCard class="stat-card glass-card" :bordered="false">
+              <NStatistic label="应用版本">
+                <template #prefix>
+                  <NIcon :component="TimeOutline" :size="20" />
+                </template>
+                <span class="version-text">v{{ appVersion }}</span>
+              </NStatistic>
+            </NCard>
+          </NGi>
+        </NGrid>
+      </div>
       
-      <!-- 主内容区：图表/表格 -->
-      <NCard class="main-content glass-card" :bordered="false">
-        <NTabs 
-          v-model:value="activeTab" 
-          type="line" 
-          animated
-          class="content-tabs"
-        >
-          <NTabPane name="chart" tab="趋势图表">
-            <div class="tab-content">
-              <LineChart v-if="dataStore.records.length > 0" />
-              <NEmpty v-else description="暂无数据，请选择时间范围和标签后查询" />
-            </div>
-          </NTabPane>
-          <NTabPane name="table" tab="数据表格">
-            <div class="tab-content">
-              <DataTable v-if="dataStore.records.length > 0" />
-              <NEmpty v-else description="暂无数据，请选择时间范围和标签后查询" />
-            </div>
-          </NTabPane>
-        </NTabs>
-      </NCard>
+      <!-- 分组列表 -->
+      <div class="groups-section">
+        <div class="section-header">
+          <h2 class="section-title">我的分组</h2>
+          <NButton type="primary" @click="openCreateModal">
+            <template #icon>
+              <NIcon :component="AddOutline" />
+            </template>
+            新建分组
+          </NButton>
+        </div>
+        
+        <NSpin :show="loading">
+          <NGrid 
+            v-if="groups.length > 0" 
+            :cols="4" 
+            :x-gap="16" 
+            :y-gap="16" 
+            responsive="screen"
+            item-responsive
+          >
+            <NGi v-for="group in groups" :key="group.id" span="0:24 600:12 900:8 1200:6">
+              <NCard 
+                class="group-card glass-card hoverable" 
+                :bordered="false"
+                @click="openGroup(group.id)"
+              >
+                <div class="group-content">
+                  <div class="group-header">
+                    <NIcon :component="LayersOutline" :size="24" class="group-icon" />
+                    <h3 class="group-name">{{ group.name }}</h3>
+                  </div>
+                  
+                  <div class="group-info">
+                    <div class="info-item">
+                      <NIcon :component="PricetagsOutline" :size="14" />
+                      <span>{{ group.tags.length }} 个标签</span>
+                    </div>
+                    <div class="info-item">
+                      <NIcon :component="TimeOutline" :size="14" />
+                      <span>{{ formatTime(group.updatedAt) }}</span>
+                    </div>
+                  </div>
+                  
+                  <div class="group-tags">
+                    <NTag 
+                      v-for="tag in group.tags.slice(0, 3)" 
+                      :key="tag" 
+                      size="small"
+                      round
+                    >
+                      {{ tag }}
+                    </NTag>
+                    <NTag v-if="group.tags.length > 3" size="small" round type="info">
+                      +{{ group.tags.length - 3 }}
+                    </NTag>
+                  </div>
+                </div>
+                
+                <div class="group-arrow">
+                  <NIcon :component="ChevronForwardOutline" :size="20" />
+                </div>
+              </NCard>
+            </NGi>
+            
+            <!-- 新建分组卡片 -->
+            <NGi span="0:24 600:12 900:8 1200:6">
+              <NCard 
+                class="group-card group-card-new glass-card hoverable" 
+                :bordered="false"
+                @click="openCreateModal"
+              >
+                <div class="new-group-content">
+                  <NIcon :component="AddOutline" :size="32" class="add-icon" />
+                  <span>新建分组</span>
+                </div>
+              </NCard>
+            </NGi>
+          </NGrid>
+          
+          <NEmpty v-else description="暂无分组，点击新建开始使用" size="large">
+            <template #extra>
+              <NButton type="primary" @click="openCreateModal">
+                <template #icon>
+                  <NIcon :component="AddOutline" />
+                </template>
+                新建分组
+              </NButton>
+            </template>
+          </NEmpty>
+        </NSpin>
+      </div>
+      
+      <!-- 新建分组弹窗 -->
+      <NModal
+        v-model:show="showCreateModal"
+        preset="dialog"
+        title="新建分组"
+        positive-text="创建"
+        negative-text="取消"
+        :loading="creating"
+        @positive-click="handleCreate"
+      >
+        <NInput 
+          v-model:value="newGroupName" 
+          placeholder="输入分组名称"
+          :maxlength="50"
+          @keyup.enter="handleCreate"
+        />
+      </NModal>
     </div>
   </MainLayout>
 </template>
 
 <style scoped>
 .home-view {
-  padding: 20px;
+  padding: 24px;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  animation: fadeIn var(--transition-normal) ease-out;
+  overflow-y: auto;
+  animation: fadeIn 0.3s ease-out;
 }
 
-.toolbar-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.page-header {
+  margin-bottom: 24px;
 }
 
-.tag-selector-wrapper {
-  padding: 12px 16px;
-  border-radius: var(--radius-lg);
+.page-title {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-.main-content {
+.page-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.status-section {
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  height: 100%;
+}
+
+.stat-card :deep(.n-statistic-value) {
+  font-size: 18px;
+}
+
+.stat-detail {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'Consolas', monospace;
+}
+
+.version-text {
+  font-family: 'Consolas', monospace;
+  font-size: 16px;
+}
+
+.groups-section {
   flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
 }
 
-.main-content :deep(.n-card__content) {
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.group-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
   padding: 16px;
+}
+
+.group-card:hover {
+  transform: translateY(-2px);
+}
+
+.group-content {
   flex: 1;
+  min-width: 0;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.group-icon {
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.group-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.group-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.group-arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.group-card-new {
+  justify-content: center;
+  min-height: 140px;
+  border: 2px dashed var(--border-color);
+  background: transparent;
+}
+
+.group-card-new:hover {
+  border-color: var(--primary-color);
+  background: var(--bg-hover);
+}
+
+.new-group-content {
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
 }
 
-.content-tabs {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+.add-icon {
+  opacity: 0.5;
 }
 
-.content-tabs :deep(.n-tabs-pane-wrapper) {
-  flex: 1;
-  min-height: 0;
-}
-
-.content-tabs :deep(.n-tab-pane) {
-  height: 100%;
-}
-
-.tab-content {
-  height: 100%;
-  min-height: 400px;
-  display: flex;
-  flex-direction: column;
+.group-card-new:hover .add-icon {
+  opacity: 1;
+  color: var(--primary-color);
 }
 
 @keyframes fadeIn {

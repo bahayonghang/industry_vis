@@ -27,12 +27,14 @@ import {
 } from '@vicons/ionicons5'
 import type { MenuOption, DropdownOption } from 'naive-ui'
 import { useThemeStore } from '@/stores/theme'
+import { useConfigStore } from '@/stores/config'
 import TagGroupTree from '@/components/TagGroupTree.vue'
 import GroupEditView from '@/components/GroupEditView.vue'
 
 const router = useRouter()
 const route = useRoute()
 const themeStore = useThemeStore()
+const configStore = useConfigStore()
 
 // 侧边栏折叠状态
 const collapsed = ref(false)
@@ -63,12 +65,6 @@ const themeIcon = computed(() => {
   if (themeStore.mode === 'light') return SunnyOutline
   if (themeStore.mode === 'dark') return MoonOutline
   return DesktopOutline
-})
-
-const themeLabel = computed(() => {
-  if (themeStore.mode === 'light') return '浅色'
-  if (themeStore.mode === 'dark') return '深色'
-  return '跟随系统'
 })
 
 // 菜单选项
@@ -126,8 +122,21 @@ const handleThemeSelect = (key: string) => {
           </NIcon>
         </div>
         <Transition name="fade">
-          <span v-if="!collapsed" class="logo-text">工业数据监控</span>
+          <span v-if="!collapsed" class="logo-text">工业数据可视化</span>
         </Transition>
+        
+        <!-- 主题切换按钮 -->
+        <NDropdown 
+          :options="themeOptions" 
+          @select="handleThemeSelect"
+          placement="bottom-start"
+        >
+          <NButton quaternary circle size="small" class="theme-toggle-btn">
+            <template #icon>
+              <NIcon :component="themeIcon" size="18" />
+            </template>
+          </NButton>
+        </NDropdown>
       </div>
       
       <NDivider style="margin: 8px 0" />
@@ -151,24 +160,6 @@ const handleThemeSelect = (key: string) => {
         </div>
       </Transition>
       
-      <!-- 底部操作区 -->
-      <div class="sidebar-footer">
-        <NDivider style="margin: 8px 0" />
-        
-        <!-- 主题切换 -->
-        <NDropdown 
-          :options="themeOptions" 
-          @select="handleThemeSelect"
-          placement="right"
-        >
-          <NButton quaternary block class="theme-btn">
-            <template #icon>
-              <NIcon :component="themeIcon" />
-            </template>
-            <span v-if="!collapsed">{{ themeLabel }}</span>
-          </NButton>
-        </NDropdown>
-      </div>
     </NLayoutSider>
     
     <!-- 主内容区 -->
@@ -189,11 +180,11 @@ const handleThemeSelect = (key: string) => {
           <NTooltip>
             <template #trigger>
               <NSpace align="center" :size="6">
-                <span class="status-dot online"></span>
-                <span class="status-text">已连接</span>
+                <span class="status-dot" :class="configStore.isConnected ? 'online' : 'offline'"></span>
+                <span class="status-text">{{ configStore.isConnected ? '已连接' : '未连接' }}</span>
               </NSpace>
             </template>
-            数据库连接正常
+            {{ configStore.isConnected ? '数据库连接正常' : '请在设置中配置并测试数据库连接' }}
           </NTooltip>
           
           <!-- 更多操作 -->
@@ -249,6 +240,11 @@ const handleThemeSelect = (key: string) => {
   min-height: 64px;
 }
 
+.theme-toggle-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .logo-icon {
   display: flex;
   align-items: center;
@@ -289,17 +285,6 @@ const handleThemeSelect = (key: string) => {
 .tag-group-section :deep(.tag-group-tree) {
   flex: 1;
   min-height: 0;
-}
-
-/* 侧边栏底部 */
-.sidebar-footer {
-  padding: 8px;
-  margin-top: auto;
-}
-
-.theme-btn {
-  justify-content: flex-start;
-  padding-left: 12px;
 }
 
 /* 顶部栏 */

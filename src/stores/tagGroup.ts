@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import type { TagGroup } from '@/types'
+import type { DataProcessingConfig, TagGroup } from '@/types'
 
 export const useTagGroupStore = defineStore('tagGroup', () => {
   // 状态
@@ -80,12 +80,22 @@ export const useTagGroupStore = defineStore('tagGroup', () => {
   }
 
   // 更新分组
-  async function updateGroup(id: string, name: string, tags: string[]): Promise<TagGroup | null> {
+  async function updateGroup(
+    id: string, 
+    name: string, 
+    tags: string[],
+    processingConfig?: DataProcessingConfig
+  ): Promise<TagGroup | null> {
     loading.value = true
     error.value = null
     
     try {
-      const updated = await invoke<TagGroup>('update_tag_group', { id, name, tags })
+      const updated = await invoke<TagGroup>('update_tag_group', { 
+        id, 
+        name, 
+        tags,
+        processingConfig: processingConfig || null,
+      })
       const idx = groups.value.findIndex(g => g.id === id)
       if (idx !== -1) {
         groups.value[idx] = updated

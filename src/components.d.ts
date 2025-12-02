@@ -8,18 +8,15 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ConnectionSettings: typeof import('./components/ConnectionSettings.vue')['default']
-    DataTable: typeof import('./components/DataTable.vue')['default']
     GroupEditView: typeof import('./components/GroupEditView.vue')['default']
-    KpiCards: typeof import('./components/KpiCards.vue')['default']
     LineChart: typeof import('./components/LineChart.vue')['default']
     NH2: typeof import('naive-ui')['NH2']
-    QueryToolbar: typeof import('./components/QueryToolbar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TagGroupEditor: typeof import('./components/TagGroupEditor.vue')['default']
     TagGroupTree: typeof import('./components/TagGroupTree.vue')['default']
+    TagSearchModal: typeof import('./components/TagSearchModal.vue')['default']
     TagSearchSelect: typeof import('./components/TagSearchSelect.vue')['default']
-    TagSelector: typeof import('./components/TagSelector.vue')['default']
     TimeRangeSelector: typeof import('./components/TimeRangeSelector.vue')['default']
   }
 }

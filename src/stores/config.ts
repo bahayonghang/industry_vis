@@ -17,6 +17,8 @@ export const useConfigStore = defineStore('config', () => {
   const config = ref<AppConfig | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const isConnected = ref(false)
+  const lastConnectionMessage = ref<string>('')
 
   // Actions
   const loadConfig = async (): Promise<ConfigFormValue | null> => {
@@ -84,10 +86,21 @@ export const useConfigStore = defineStore('config', () => {
       }
       
       const result = await invoke<ConnectionTestResult>('test_connection', { config: dbConfig })
+      // 更新连接状态
+      isConnected.value = result.success
+      lastConnectionMessage.value = result.message
       return result
     } catch (e) {
+      isConnected.value = false
+      lastConnectionMessage.value = String(e)
       return { success: false, message: String(e) }
     }
+  }
+
+  // 重置连接状态（当配置改变时）
+  const resetConnectionStatus = () => {
+    isConnected.value = false
+    lastConnectionMessage.value = ''
   }
 
   return {
@@ -95,9 +108,12 @@ export const useConfigStore = defineStore('config', () => {
     config,
     loading,
     error,
+    isConnected,
+    lastConnectionMessage,
     // Actions
     loadConfig,
     saveConfig,
     testConnection,
+    resetConnectionStatus,
   }
 })

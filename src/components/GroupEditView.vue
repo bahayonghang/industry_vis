@@ -4,22 +4,34 @@ import {
   NButton, 
   NIcon, 
   NInput, 
-  NEmpty, 
   NTag, 
   NSpace, 
-  NSpin,
-  NScrollbar,
+  NTooltip,
+  NButtonGroup,
+  NDatePicker,
+  NDivider,
+  NPopconfirm,
+  NCheckbox,
+  NInputNumber,
+  NCard,
   useMessage,
   useDialog
 } from 'naive-ui'
 import { 
   ArrowBackOutline, 
   SaveOutline,
-  SearchOutline
+  TrashOutline,
+  AddOutline,
+  RefreshOutline,
+  PlayOutline,
+  TimeOutline
 } from '@vicons/ionicons5'
 import { useTagGroupStore } from '@/stores/tagGroup'
-import { useDebounceFn } from '@vueuse/core'
-import type { TagGroup } from '@/types'
+import { useDataStore } from '@/stores/data'
+import LineChart from '@/components/LineChart.vue'
+import TagSearchModal from '@/components/TagSearchModal.vue'
+import type { DataProcessingConfig, TagGroup } from '@/types'
+import { createDefaultProcessingConfig } from '@/types'
 
 const props = defineProps<{
   groupId: string
@@ -28,39 +40,57 @@ const props = defineProps<{
 const emit = defineEmits<{
   'back': []
   'saved': [group: TagGroup]
+  'deleted': []
 }>()
 
 const tagGroupStore = useTagGroupStore()
+const dataStore = useDataStore()
 const message = useMessage()
 const dialog = useDialog()
 
 // 编辑状态
 const groupName = ref('')
 const selectedTags = ref<string[]>([])
-const searchKeyword = ref('')
 const hasChanges = ref(false)
 const saving = ref(false)
+const showTagModal = ref(false)
+
+// 数据处理配置
+const processingConfig = ref<DataProcessingConfig>(createDefaultProcessingConfig())
 
 // 原始数据（用于检测变更）
 const originalName = ref('')
 const originalTags = ref<string[]>([])
+const originalProcessingConfig = ref<DataProcessingConfig>(createDefaultProcessingConfig())
+
+// 时间选择
+type PresetKey = 'realtime' | '1h' | 'shift' | 'today' | 'yesterday' | 'week' | 'custom'
+const presets: { key: PresetKey; label: string; tooltip: string }[] = [
+  { key: 'realtime', label: '实时', tooltip: '最近5分钟' },
+  { key: '1h', label: '1H', tooltip: '最近1小时' },
+  { key: 'shift', label: '班次', tooltip: '当前班次（8小时）' },
+  { key: 'today', label: '今日', tooltip: '今日 00:00 至今' },
+  { key: 'yesterday', label: '昨日', tooltip: '昨日全天' },
+  { key: 'week', label: '本周', tooltip: '本周一至今' },
+]
+const selectedPreset = ref<PresetKey>('today')
+const customRange = ref<[number, number] | null>(null)
+const showCustomPicker = ref(false)
 
 // 是否达到标签上限
 const isMaxReached = computed(() => selectedTags.value.length >= 20)
-
-// 过滤已选标签后的搜索结果
-const filteredResults = computed(() => 
-  tagGroupStore.searchResults.filter(tag => !selectedTags.value.includes(tag))
-)
+const loading = computed(() => dataStore.loading)
+const hasData = computed(() => dataStore.records.length > 0)
 
 // 检测是否有变更
-watch([groupName, selectedTags], () => {
+watch([groupName, selectedTags, processingConfig], () => {
   hasChanges.value = 
     groupName.value !== originalName.value ||
-    JSON.stringify(selectedTags.value.sort()) !== JSON.stringify(originalTags.value.sort())
+    JSON.stringify([...selectedTags.value].sort()) !== JSON.stringify([...originalTags.value].sort()) ||
+    JSON.stringify(processingConfig.value) !== JSON.stringify(originalProcessingConfig.value)
 }, { deep: true })
 
-// 初始化加载分组数据
+// 初始化
 onMounted(() => {
   loadGroupData()
 })
@@ -76,38 +106,109 @@ function loadGroupData() {
     selectedTags.value = [...group.tags]
     originalName.value = group.name
     originalTags.value = [...group.tags]
+    
+    // 加载处理配置
+    if (group.processingConfig) {
+      processingConfig.value = JSON.parse(JSON.stringify(group.processingConfig))
+      originalProcessingConfig.value = JSON.parse(JSON.stringify(group.processingConfig))
+    } else {
+      processingConfig.value = createDefaultProcessingConfig()
+      originalProcessingConfig.value = createDefaultProcessingConfig()
+    }
+    
     hasChanges.value = false
+    
+    // 设置标签并查询数据
+    if (group.tags.length > 0) {
+      dataStore.setSelectedTags(group.tags)
+      const [start, end] = getPresetRange('today')
+      dataStore.setTimeRange(start, end)
+      dataStore.fetchData(processingConfig.value)
+    }
   }
 }
 
-// 防抖搜索（300ms）
-const debouncedSearch = useDebounceFn((keyword: string) => {
-  tagGroupStore.searchTags(keyword, 50)
-}, 300)
-
-// 监听搜索关键词变化
-watch(searchKeyword, (keyword) => {
-  if (keyword.trim()) {
-    debouncedSearch(keyword)
-  } else {
-    tagGroupStore.clearSearchResults()
+// 时间范围计算
+function getPresetRange(preset: PresetKey): [Date, Date] {
+  const now = new Date()
+  const start = new Date()
+  
+  switch (preset) {
+    case 'realtime':
+      start.setMinutes(now.getMinutes() - 5)
+      break
+    case '1h':
+      start.setHours(now.getHours() - 1)
+      break
+    case 'shift':
+      start.setHours(now.getHours() - 8)
+      break
+    case 'today':
+      start.setHours(0, 0, 0, 0)
+      break
+    case 'yesterday':
+      start.setDate(now.getDate() - 1)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(start)
+      end.setHours(23, 59, 59, 999)
+      return [start, end]
+    case 'week':
+      const dayOfWeek = now.getDay()
+      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      start.setDate(now.getDate() - diff)
+      start.setHours(0, 0, 0, 0)
+      break
+    default:
+      start.setHours(0, 0, 0, 0)
   }
-})
+  
+  return [start, now]
+}
 
-// 添加标签
-function addTag(tag: string) {
+function handlePresetClick(preset: PresetKey) {
+  selectedPreset.value = preset
+  showCustomPicker.value = false
+  const [start, end] = getPresetRange(preset)
+  dataStore.setTimeRange(start, end)
+}
+
+function handleCustomClick() {
+  showCustomPicker.value = !showCustomPicker.value
+  selectedPreset.value = 'custom'
+}
+
+function handleCustomRangeChange(range: [number, number] | null) {
+  if (range) {
+    customRange.value = range
+    dataStore.setTimeRange(new Date(range[0]), new Date(range[1]))
+  }
+}
+
+function handleQuery() {
+  if (selectedTags.value.length === 0) {
+    message.warning('请先添加标签')
+    return
+  }
+  dataStore.setSelectedTags(selectedTags.value)
+  dataStore.fetchData(processingConfig.value)
+}
+
+// 标签操作
+function handleAddTag(tag: string) {
   if (isMaxReached.value) {
     message.warning('每个分组最多包含 20 个标签')
     return
   }
-  if (selectedTags.value.includes(tag)) return
-  
-  selectedTags.value.push(tag)
+  if (!selectedTags.value.includes(tag)) {
+    selectedTags.value.push(tag)
+    // 更新数据
+    dataStore.setSelectedTags(selectedTags.value)
+  }
 }
 
-// 移除标签
 function removeTag(tag: string) {
   selectedTags.value = selectedTags.value.filter(t => t !== tag)
+  dataStore.setSelectedTags(selectedTags.value)
 }
 
 // 返回（检查未保存变更）
@@ -140,21 +241,34 @@ async function handleSave() {
     const result = await tagGroupStore.updateGroup(
       props.groupId,
       groupName.value.trim(),
-      selectedTags.value
+      selectedTags.value,
+      processingConfig.value
     )
     
     if (result) {
       message.success('分组已保存')
       originalName.value = result.name
       originalTags.value = [...result.tags]
+      originalProcessingConfig.value = JSON.parse(JSON.stringify(processingConfig.value))
       hasChanges.value = false
       emit('saved', result)
-      emit('back')
     } else if (tagGroupStore.error) {
       message.error(tagGroupStore.error)
     }
   } finally {
     saving.value = false
+  }
+}
+
+// 删除分组
+async function handleDelete() {
+  const success = await tagGroupStore.deleteGroup(props.groupId)
+  if (success) {
+    message.success('分组已删除')
+    emit('deleted')
+    emit('back')
+  } else if (tagGroupStore.error) {
+    message.error(tagGroupStore.error)
   }
 }
 </script>
@@ -169,10 +283,28 @@ async function handleSave() {
             <NIcon :component="ArrowBackOutline" />
           </template>
         </NButton>
-        <span class="header-title">编辑分组</span>
+        
+        <NInput
+          v-model:value="groupName"
+          placeholder="输入分组名称"
+          :maxlength="50"
+          class="name-input"
+        />
       </div>
       
       <div class="header-right">
+        <NPopconfirm @positive-click="handleDelete">
+          <template #trigger>
+            <NButton tertiary type="error">
+              <template #icon>
+                <NIcon :component="TrashOutline" />
+              </template>
+              删除
+            </NButton>
+          </template>
+          确定删除此分组吗？
+        </NPopconfirm>
+        
         <NButton 
           type="primary" 
           :loading="saving"
@@ -187,107 +319,193 @@ async function handleSave() {
       </div>
     </div>
     
-    <!-- 编辑内容 -->
-    <div class="edit-content">
-      <!-- 分组名称 -->
-      <div class="edit-section">
-        <div class="section-label">分组名称</div>
-        <NInput
-          v-model:value="groupName"
-          placeholder="输入分组名称"
-          maxlength="50"
-          show-count
-          class="name-input"
-        />
-      </div>
-      
-      <!-- 搜索标签 -->
-      <div class="edit-section">
-        <div class="section-label">搜索标签添加</div>
-        <NInput
-          v-model:value="searchKeyword"
-          placeholder="输入标签名模糊搜索..."
+    <!-- 时间选择工具栏 -->
+    <div class="time-toolbar glass">
+      <NSpace align="center" :size="12">
+        <NIcon :component="TimeOutline" :size="18" class="toolbar-icon" />
+        
+        <NButtonGroup size="small">
+          <NTooltip v-for="preset in presets" :key="preset.key">
+            <template #trigger>
+              <NButton
+                :type="selectedPreset === preset.key ? 'primary' : 'default'"
+                :tertiary="selectedPreset !== preset.key"
+                @click="handlePresetClick(preset.key)"
+              >
+                {{ preset.label }}
+              </NButton>
+            </template>
+            {{ preset.tooltip }}
+          </NTooltip>
+        </NButtonGroup>
+        
+        <NTooltip>
+          <template #trigger>
+            <NButton 
+              size="small"
+              :type="selectedPreset === 'custom' ? 'primary' : 'default'"
+              :tertiary="selectedPreset !== 'custom'"
+              @click="handleCustomClick"
+            >
+              自定义
+            </NButton>
+          </template>
+          选择自定义时间范围
+        </NTooltip>
+        
+        <NDatePicker
+          v-if="showCustomPicker"
+          v-model:value="customRange"
+          type="datetimerange"
+          size="small"
           clearable
-          :disabled="isMaxReached"
+          @update:value="handleCustomRangeChange"
+        />
+      </NSpace>
+      
+      <NDivider vertical style="height: 24px; margin: 0 8px" />
+      
+      <NSpace align="center" :size="8">
+        <NButton 
+          type="primary" 
+          size="small"
+          :loading="loading"
+          :disabled="selectedTags.length === 0"
+          @click="handleQuery"
         >
-          <template #prefix>
-            <NIcon :component="SearchOutline" />
+          <template #icon>
+            <NIcon :component="PlayOutline" />
           </template>
-          <template #suffix>
-            <NSpin v-if="tagGroupStore.searchLoading" :size="16" />
-          </template>
-        </NInput>
+          查询
+        </NButton>
         
-        <!-- 搜索结果 -->
-        <div v-if="searchKeyword.trim()" class="search-results glass-card">
-          <div class="results-header">
-            搜索结果
-            <span v-if="filteredResults.length > 0" class="results-count">
-              ({{ filteredResults.length }})
-            </span>
-          </div>
-          
-          <NScrollbar style="max-height: 200px">
-            <div v-if="tagGroupStore.searchLoading" class="loading-state">
-              <NSpin size="small" />
-              <span>搜索中...</span>
-            </div>
-            
-            <NEmpty 
-              v-else-if="filteredResults.length === 0" 
-              size="small"
-              description="无匹配结果"
-            />
-            
-            <div v-else class="results-list">
-              <div
-                v-for="tag in filteredResults"
-                :key="tag"
-                class="result-item"
-                :class="{ disabled: isMaxReached }"
-                @click="addTag(tag)"
-              >
-                {{ tag }}
-              </div>
-            </div>
-          </NScrollbar>
-        </div>
+        <NTooltip>
+          <template #trigger>
+            <NButton 
+              size="small" 
+              tertiary
+              :loading="loading"
+              :disabled="selectedTags.length === 0"
+              @click="handleQuery"
+            >
+              <template #icon>
+                <NIcon :component="RefreshOutline" />
+              </template>
+            </NButton>
+          </template>
+          刷新数据
+        </NTooltip>
+      </NSpace>
+    </div>
+    
+    <!-- 标签管理条 -->
+    <div class="tags-bar glass">
+      <div class="tags-label">
+        <span>标签</span>
+        <span class="tag-count" :class="{ warning: isMaxReached }">
+          {{ selectedTags.length }}/20
+        </span>
       </div>
       
-      <!-- 已添加标签 -->
-      <div class="edit-section tags-section">
-        <div class="section-label">
-          已添加标签
-          <span class="tag-count" :class="{ warning: isMaxReached }">
-            {{ selectedTags.length }}/20
-          </span>
+      <div class="tags-list">
+        <NSpace :size="[8, 8]" align="center">
+          <NTag
+            v-for="tag in selectedTags"
+            :key="tag"
+            closable
+            round
+            type="info"
+            size="medium"
+            @close="removeTag(tag)"
+          >
+            {{ tag }}
+          </NTag>
+          
+          <NButton 
+            size="small" 
+            dashed 
+            :disabled="isMaxReached"
+            @click="showTagModal = true"
+          >
+            <template #icon>
+              <NIcon :component="AddOutline" />
+            </template>
+            添加标签
+          </NButton>
+        </NSpace>
+      </div>
+    </div>
+    
+    <!-- 数据处理配置面板 -->
+    <NCard class="processing-panel glass" :bordered="false" size="small">
+      <template #header>
+        <span class="panel-title">📊 数据处理</span>
+      </template>
+      
+      <div class="processing-options">
+        <!-- 异常值剔除 -->
+        <div class="option-item">
+          <NCheckbox v-model:checked="processingConfig.outlierRemoval.enabled">
+            异常值剔除
+          </NCheckbox>
+          <span class="option-hint">(3σ法则)</span>
         </div>
         
-        <div class="selected-tags glass-card">
-          <NScrollbar style="max-height: 300px">
-            <NEmpty 
-              v-if="selectedTags.length === 0" 
-              size="small"
-              description="搜索并点击标签添加到分组"
-            />
-            
-            <NSpace v-else :size="[8, 8]" style="padding: 12px">
-              <NTag
-                v-for="tag in selectedTags"
-                :key="tag"
-                closable
-                round
-                type="info"
-                size="medium"
-                @close="removeTag(tag)"
-              >
-                {{ tag }}
-              </NTag>
-            </NSpace>
-          </NScrollbar>
+        <!-- 重采样 -->
+        <div class="option-item">
+          <NCheckbox v-model:checked="processingConfig.resample.enabled">
+            重采样
+          </NCheckbox>
+          <NInputNumber
+            v-model:value="processingConfig.resample.interval"
+            :disabled="!processingConfig.resample.enabled"
+            :min="1"
+            :max="3600"
+            size="small"
+            style="width: 100px"
+          />
+          <span class="option-unit">秒</span>
+          <span class="option-hint">(均值聚合)</span>
+        </div>
+        
+        <!-- 平滑滤波 -->
+        <div class="option-item">
+          <NCheckbox v-model:checked="processingConfig.smoothing.enabled">
+            平滑滤波
+          </NCheckbox>
+          <span class="option-label">窗口:</span>
+          <NInputNumber
+            v-model:value="processingConfig.smoothing.window"
+            :disabled="!processingConfig.smoothing.enabled"
+            :min="2"
+            :max="50"
+            size="small"
+            style="width: 80px"
+          />
+          <span class="option-hint">(移动平均)</span>
+        </div>
+      </div>
+    </NCard>
+    
+    <!-- 图表区域 -->
+    <div class="chart-container glass-card">
+      <LineChart v-if="hasData" />
+      <div v-else class="empty-chart">
+        <div class="empty-content">
+          <NIcon :component="TimeOutline" :size="48" class="empty-icon" />
+          <p v-if="selectedTags.length === 0">请添加标签后查询数据</p>
+          <p v-else>选择时间范围并点击查询</p>
         </div>
       </div>
     </div>
+    
+    <!-- 标签搜索弹窗 -->
+    <TagSearchModal
+      v-model:show="showTagModal"
+      :selected-tags="selectedTags"
+      :max-tags="20"
+      @add="handleAddTag"
+    />
   </div>
 </template>
 
@@ -296,6 +514,8 @@ async function handleSave() {
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding: 16px;
+  gap: 12px;
   background: var(--bg-base);
 }
 
@@ -303,21 +523,26 @@ async function handleSave() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--header-bg);
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
 }
 
-.header-title {
+.name-input {
+  max-width: 300px;
   font-size: 16px;
   font-weight: 500;
-  color: var(--text-primary);
+}
+
+.name-input :deep(.n-input__input-el) {
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .header-right {
@@ -326,25 +551,35 @@ async function handleSave() {
   gap: 12px;
 }
 
-.edit-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-  max-width: 800px;
+.time-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-radius: var(--radius-lg);
 }
 
-.edit-section {
-  margin-bottom: 24px;
+.toolbar-icon {
+  color: var(--text-muted);
 }
 
-.section-label {
+.tags-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+}
+
+.tags-label {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
+  white-space: nowrap;
+  padding-top: 4px;
 }
 
 .tag-count {
@@ -356,67 +591,82 @@ async function handleSave() {
   color: #f59e0b;
 }
 
-.name-input {
-  max-width: 400px;
-}
-
-.search-results {
-  margin-top: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.results-header {
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.results-count {
-  color: var(--text-muted);
-}
-
-.loading-state {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px;
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.results-list {
-  padding: 4px;
-}
-
-.result-item {
-  padding: 8px 12px;
-  font-size: 13px;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: background-color 0.15s;
-}
-
-.result-item:hover:not(.disabled) {
-  background: var(--bg-hover);
-}
-
-.result-item.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.tags-section {
+.tags-list {
   flex: 1;
 }
 
-.selected-tags {
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  min-height: 150px;
+/* 数据处理面板 */
+.processing-panel {
+  border-radius: var(--radius-lg);
+}
+
+.processing-panel :deep(.n-card-header) {
+  padding: 10px 16px;
+}
+
+.panel-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.processing-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.option-label {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.option-unit {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.option-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.chart-container {
+  flex: 1;
+  min-height: 400px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.empty-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+}
+
+.empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: var(--text-muted);
+}
+
+.empty-icon {
+  opacity: 0.3;
+}
+
+.empty-content p {
+  margin: 0;
+  font-size: 14px;
 }
 </style>
