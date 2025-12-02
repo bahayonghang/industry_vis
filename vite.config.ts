@@ -50,5 +50,15 @@ export default defineConfig({
     minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
+    // 代码分割优化 - 使用简单的数组配置避免循环依赖
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'echarts': ['echarts/core', 'echarts/charts', 'echarts/components', 'echarts/renderers', 'zrender'],
+        },
+      },
+    },
+    // 调整警告阈值
+    chunkSizeWarningLimit: 1000,
   },
 })
