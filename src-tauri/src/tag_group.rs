@@ -188,11 +188,13 @@ impl TagGroupConfig {
     }
     
     /// 获取所有分组
+    #[allow(dead_code)]
     pub fn list_groups(&self) -> &[TagGroup] {
         &self.groups
     }
     
     /// 根据 ID 获取分组
+    #[allow(dead_code)]
     pub fn get_group(&self, id: &str) -> Option<&TagGroup> {
         self.groups.iter().find(|g| g.id == id)
     }

@@ -12,6 +12,7 @@ pub enum AppError {
     Query(String),
 
     #[error("Data processing error: {0}")]
+    #[allow(dead_code)]
     DataProcessing(String),
 
     #[error("Validation error: {0}")]
