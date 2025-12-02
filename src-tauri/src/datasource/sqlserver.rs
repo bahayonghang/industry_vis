@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use tiberius::{Client, Config, AuthMethod, Query};
 use tokio::net::TcpStream;
 use tokio_util::compat::TokioAsyncWriteCompatExt;
+use tracing::{debug, error, info};
 
 use crate::config::DatabaseConfig;
 use crate::error::{AppError, AppResult};
@@ -44,7 +45,26 @@ impl SqlServerSource {
 
         let client = Client::connect(tiberius_config, tcp.compat_write())
             .await
-            .map_err(|e| AppError::Connection(format!("SQL Server connection failed: {}", e)))?;
+            .map_err(|e| {
+                let err_str = e.to_string();
+                // 提供更友好的中文错误提示
+                if err_str.contains("4060") {
+                    AppError::Connection(format!(
+                        "数据库 '{}' 不存在或无访问权限。请检查数据库名称是否正确。原始错误: {}",
+                        self.config.database, err_str
+                    ))
+                } else if err_str.contains("18456") {
+                    AppError::Connection(format!(
+                        "用户名或密码错误。原始错误: {}", err_str
+                    ))
+                } else if err_str.contains("Login failed") {
+                    AppError::Connection(format!(
+                        "登录失败，请检查用户名和密码。原始错误: {}", err_str
+                    ))
+                } else {
+                    AppError::Connection(format!("SQL Server 连接失败: {}", err_str))
+                }
+            })?;
 
         Ok(client)
     }
@@ -120,31 +140,58 @@ impl DataSource for SqlServerSource {
     async fn search_tags(&self, keyword: &str, limit: usize) -> AppResult<Vec<String>> {
         let mut client = self.connect().await?;
         
-        // 从 TagDatabase 表模糊搜索 TagName
+        // 从 TagDataBase 表模糊搜索 TagName
+        // 使用参数化查询避免 SQL 注入和特殊字符问题
+        let search_pattern = format!("%{}%", keyword);
+        
         let sql = format!(
-            r#"
-            SELECT DISTINCT TOP {} TagName 
-            FROM [TagDatabase] 
-            WHERE TagName LIKE '%{}%'
-            ORDER BY TagName
-            "#,
-            limit,
-            keyword.replace('\'', "''").replace('%', "[%]").replace('_', "[_]")
+            r#"SELECT DISTINCT TOP {} TagName 
+               FROM [TagDataBase] 
+               WHERE TagName LIKE @P1
+               ORDER BY TagName"#,
+            limit
         );
         
-        let query = Query::new(&sql);
+        debug!(target: "industry_vis_lib::datasource", 
+            database = %self.config.database,
+            keyword = %keyword,
+            pattern = %search_pattern,
+            "执行标签搜索 SQL: {}", sql
+        );
+        
+        let mut query = Query::new(&sql);
+        query.bind(&search_pattern);
+        
         let stream = query.query(&mut client)
             .await
-            .map_err(|e| AppError::Query(format!("搜索标签失败: {}", e)))?;
+            .map_err(|e| {
+                error!(target: "industry_vis_lib::datasource",
+                    database = %self.config.database,
+                    keyword = %keyword,
+                    error = %e,
+                    "标签搜索失败"
+                );
+                AppError::Query(format!(
+                    "搜索标签失败 (数据库: {}, 关键词: {}): {}", 
+                    self.config.database, keyword, e
+                ))
+            })?;
         
         let rows = stream.into_first_result()
             .await
             .map_err(|e| AppError::Query(format!("获取搜索结果失败: {}", e)))?;
         
-        let tags = rows.iter()
+        let tags: Vec<String> = rows.iter()
             .filter_map(|row| row.get::<&str, _>(0).map(|s| s.trim().to_string()))
             .filter(|s| !s.is_empty())
             .collect();
+        
+        info!(target: "industry_vis_lib::datasource",
+            database = %self.config.database,
+            keyword = %keyword,
+            count = tags.len(),
+            "标签搜索完成"
+        );
         
         Ok(tags)
     }
@@ -158,6 +205,7 @@ impl DataSource for SqlServerSource {
     ) -> AppResult<Vec<HistoryRecord>> {
         let mut client = self.connect().await?;
         
+        let tag_count = tags.map(|t| t.len()).unwrap_or(0);
         let tag_filter = match tags {
             Some(t) if !t.is_empty() => {
                 let tag_list = t.iter()
@@ -183,16 +231,32 @@ impl DataSource for SqlServerSource {
             tag_filter
         );
         
+        debug!(target: "industry_vis_lib::datasource",
+            database = %self.config.database,
+            table = %table,
+            start_time = %start_time,
+            end_time = %end_time,
+            tag_count = tag_count,
+            "执行历史查询 SQL: {}", sql.replace('\n', " ").replace("  ", " ")
+        );
+        
         let query = Query::new(&sql);
         let stream = query.query(&mut client)
             .await
-            .map_err(|e| AppError::Query(format!("Failed to query history: {}", e)))?;
+            .map_err(|e| {
+                error!(target: "industry_vis_lib::datasource",
+                    database = %self.config.database,
+                    error = %e,
+                    "历史查询失败"
+                );
+                AppError::Query(format!("Failed to query history: {}", e))
+            })?;
         
         let rows = stream.into_first_result()
             .await
             .map_err(|e| AppError::Query(format!("Failed to fetch history results: {}", e)))?;
         
-        let records = rows.iter().map(|row| {
+        let records: Vec<HistoryRecord> = rows.iter().map(|row| {
             let dt: Option<chrono::NaiveDateTime> = row.get(0);
             let date_time = dt
                 .map(|d| d.format("%Y-%m-%dT%H:%M:%S%.3f").to_string())
@@ -205,6 +269,13 @@ impl DataSource for SqlServerSource {
                 tag_quality: row.get::<&str, _>(3).unwrap_or("").trim().to_string(),
             }
         }).collect();
+        
+        info!(target: "industry_vis_lib::datasource",
+            database = %self.config.database,
+            table = %table,
+            records = records.len(),
+            "历史查询完成"
+        );
         
         Ok(records)
     }

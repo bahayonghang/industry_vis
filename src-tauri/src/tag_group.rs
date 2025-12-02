@@ -3,12 +3,13 @@
 //! 支持将多个标签组合成一个分组，便于批量查询和管理。
 //! 分组配置保存在 `tag_groups.toml` 文件中。
 
-use chrono::{Local, DateTime};
+use chrono::Local;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
 use crate::error::{AppError, AppResult};
+use crate::models::DataProcessingConfig;
 
 /// 单个标签分组
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,6 +21,9 @@ pub struct TagGroup {
     pub name: String,
     /// 包含的标签列表（最多 20 个）
     pub tags: Vec<String>,
+    /// 数据处理配置
+    #[serde(default)]
+    pub processing_config: DataProcessingConfig,
     /// 创建时间
     pub created_at: String,
     /// 更新时间
@@ -48,13 +52,19 @@ impl TagGroup {
             id,
             name: name.trim().to_string(),
             tags,  // 允许为空
+            processing_config: DataProcessingConfig::default(),
             created_at: now.clone(),
             updated_at: now,
         })
     }
     
     /// 更新分组
-    pub fn update(&mut self, name: String, tags: Vec<String>) -> AppResult<()> {
+    pub fn update(
+        &mut self, 
+        name: String, 
+        tags: Vec<String>,
+        processing_config: Option<DataProcessingConfig>,
+    ) -> AppResult<()> {
         if tags.len() > 20 {
             return Err(AppError::Validation(
                 "每个分组最多包含 20 个标签".to_string()
@@ -69,6 +79,9 @@ impl TagGroup {
         
         self.name = name.trim().to_string();
         self.tags = tags;  // 允许为空
+        if let Some(config) = processing_config {
+            self.processing_config = config;
+        }
         self.updated_at = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
         
         Ok(())
@@ -95,15 +108,61 @@ impl Default for TagGroupConfig {
 }
 
 impl TagGroupConfig {
+    /// 获取 exe 同目录的配置路径（便携模式）
+    fn portable_config_path() -> Option<PathBuf> {
+        std::env::current_exe().ok()
+            .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+            .map(|d| d.join("tag_groups.toml"))
+    }
+
+    /// 获取 AppData 目录的配置路径（安装模式）
+    fn appdata_config_path() -> Option<PathBuf> {
+        dirs::config_dir().map(|d| d.join("IndustryVis").join("tag_groups.toml"))
+    }
+
     /// 获取配置文件路径
     pub fn config_path() -> AppResult<PathBuf> {
-        let exe_dir = std::env::current_exe()
-            .map_err(|e| AppError::Config(format!("获取程序路径失败: {}", e)))?
-            .parent()
-            .ok_or_else(|| AppError::Config("获取程序目录失败".to_string()))?
-            .to_path_buf();
-        
-        Ok(exe_dir.join("tag_groups.toml"))
+        // 优先检查 exe 同目录是否已有配置（便携模式）
+        if let Some(portable_path) = Self::portable_config_path() {
+            if portable_path.exists() {
+                return Ok(portable_path);
+            }
+        }
+
+        // 检查 AppData 是否已有配置
+        if let Some(appdata_path) = Self::appdata_config_path() {
+            if appdata_path.exists() {
+                return Ok(appdata_path);
+            }
+        }
+
+        // 都不存在时，默认使用 exe 同目录
+        Self::portable_config_path()
+            .ok_or_else(|| AppError::Config("无法确定配置文件路径".to_string()))
+    }
+
+    /// 获取保存配置的路径
+    fn save_config_path() -> AppResult<PathBuf> {
+        // 优先尝试 exe 同目录（便携模式）
+        if let Some(portable_path) = Self::portable_config_path() {
+            if let Some(parent) = portable_path.parent() {
+                let test_file = parent.join(".tag_groups_write_test");
+                if fs::write(&test_file, "test").is_ok() {
+                    let _ = fs::remove_file(&test_file);
+                    return Ok(portable_path);
+                }
+            }
+        }
+
+        // 不可写时使用 AppData
+        if let Some(appdata_path) = Self::appdata_config_path() {
+            if let Some(parent) = appdata_path.parent() {
+                let _ = fs::create_dir_all(parent);
+            }
+            return Ok(appdata_path);
+        }
+
+        Err(AppError::Config("无法找到可写的配置文件路径".to_string()))
     }
     
     /// 从文件加载配置
@@ -122,7 +181,7 @@ impl TagGroupConfig {
     
     /// 保存配置到文件
     pub fn save(&self) -> AppResult<()> {
-        let path = Self::config_path()?;
+        let path = Self::save_config_path()?;
         let content = toml::to_string_pretty(self)?;
         fs::write(&path, content)?;
         Ok(())
@@ -161,7 +220,13 @@ impl TagGroupConfig {
     }
     
     /// 更新分组
-    pub fn update_group(&mut self, id: &str, name: String, tags: Vec<String>) -> AppResult<TagGroup> {
+    pub fn update_group(
+        &mut self, 
+        id: &str, 
+        name: String, 
+        tags: Vec<String>,
+        processing_config: Option<DataProcessingConfig>,
+    ) -> AppResult<TagGroup> {
         // 检查名称是否与其他分组重复
         if self.groups.iter().any(|g| g.id != id && g.name == name.trim()) {
             return Err(AppError::Validation(
@@ -172,7 +237,7 @@ impl TagGroupConfig {
         let group = self.get_group_mut(id)
             .ok_or_else(|| AppError::NotFound(format!("分组 '{}' 不存在", id)))?;
         
-        group.update(name, tags)?;
+        group.update(name, tags, processing_config)?;
         let result = group.clone();
         self.save()?;
         
