@@ -46,3 +46,12 @@ export interface ConnectionTestResult {
   success: boolean
   message: string
 }
+
+// 标签分组
+export interface TagGroup {
+  id: string
+  name: string
+  tags: string[]  // 最多 20 个
+  createdAt: string
+  updatedAt: string
+}

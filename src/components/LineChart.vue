@@ -3,15 +3,35 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { NSpin } from 'naive-ui'
 import * as echarts from 'echarts'
 import { useDataStore } from '@/stores/data'
+import { useThemeStore } from '@/stores/theme'
 
 const dataStore = useDataStore()
+const themeStore = useThemeStore()
 const chartRef = ref<HTMLDivElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
 
 const loading = computed(() => dataStore.loading)
 
+// 工业风配色方案
+const colorPalette = [
+  '#3b82f6', // 蓝
+  '#22c55e', // 绿
+  '#f59e0b', // 橙
+  '#8b5cf6', // 紫
+  '#ec4899', // 粉
+  '#06b6d4', // 青
+  '#84cc16', // 黄绿
+  '#f97316', // 橙红
+]
+
 const chartOption = computed(() => {
   const records = dataStore.records
+  const isDark = themeStore.isDark
+  
+  // 主题相关颜色
+  const textColor = isDark ? '#94a3b8' : '#64748b'
+  const borderColor = isDark ? '#334155' : '#e2e8f0'
+  const bgColor = 'transparent'
   
   // Group data by tag
   const seriesData: Record<string, { time: string; value: number }[]> = {}
@@ -32,50 +52,169 @@ const chartOption = computed(() => {
     type: 'line',
     smooth: true,
     showSymbol: false,
+    symbolSize: 6,
+    lineStyle: {
+      width: 2,
+    },
+    areaStyle: {
+      opacity: 0.1,
+    },
+    emphasis: {
+      focus: 'series',
+      lineStyle: {
+        width: 3,
+      },
+    },
     data: data.map(d => [d.time, d.value]),
   }))
   
   return {
+    color: colorPalette,
+    backgroundColor: bgColor,
     tooltip: {
       trigger: 'axis',
-      axisPointer: { type: 'cross' },
+      axisPointer: { 
+        type: 'cross',
+        crossStyle: {
+          color: textColor,
+        },
+      },
+      backgroundColor: isDark ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.95)',
+      borderColor: borderColor,
+      borderWidth: 1,
+      textStyle: {
+        color: isDark ? '#e2e8f0' : '#1e293b',
+      },
       formatter: (params: any[]) => {
         if (!params.length) return ''
         const time = new Date(params[0].axisValue).toLocaleString('zh-CN')
-        let html = `<div style="font-weight:bold">${time}</div>`
+        let html = `<div style="font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${borderColor}">${time}</div>`
         for (const p of params) {
-          html += `<div>${p.marker} ${p.seriesName}: ${p.value[1].toFixed(4)}</div>`
+          html += `<div style="display:flex;justify-content:space-between;gap:24px;margin:4px 0">
+            <span>${p.marker} ${p.seriesName}</span>
+            <span style="font-weight:500">${p.value[1].toFixed(4)}</span>
+          </div>`
         }
         return html
       },
     },
     legend: {
       type: 'scroll',
-      bottom: 0,
+      bottom: 8,
+      textStyle: {
+        color: textColor,
+      },
+      pageTextStyle: {
+        color: textColor,
+      },
     },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '15%',
+      top: '8%',
+      bottom: '18%',
       containLabel: true,
     },
     xAxis: {
       type: 'time',
+      axisLine: {
+        lineStyle: {
+          color: borderColor,
+        },
+      },
       axisLabel: {
+        color: textColor,
         formatter: (value: number) => {
           const date = new Date(value)
-          return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`
+          return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+        },
+      },
+      splitLine: {
+        show: true,
+        lineStyle: {
+          color: borderColor,
+          type: 'dashed',
         },
       },
     },
     yAxis: {
       type: 'value',
       scale: true,
+      axisLine: {
+        show: false,
+      },
+      axisLabel: {
+        color: textColor,
+      },
+      splitLine: {
+        lineStyle: {
+          color: borderColor,
+          type: 'dashed',
+        },
+      },
     },
     dataZoom: [
-      { type: 'inside', start: 0, end: 100 },
-      { type: 'slider', start: 0, end: 100 },
+      { 
+        type: 'inside', 
+        start: 0, 
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      { 
+        type: 'slider', 
+        start: 0, 
+        end: 100,
+        height: 24,
+        bottom: 36,
+        borderColor: borderColor,
+        backgroundColor: isDark ? 'rgba(30, 41, 59, 0.5)' : 'rgba(241, 245, 249, 0.8)',
+        fillerColor: isDark ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)',
+        handleStyle: {
+          color: '#3b82f6',
+          borderColor: '#3b82f6',
+        },
+        textStyle: {
+          color: textColor,
+        },
+        dataBackground: {
+          lineStyle: {
+            color: borderColor,
+          },
+          areaStyle: {
+            color: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
+          },
+        },
+      },
     ],
+    toolbox: {
+      right: 16,
+      top: 0,
+      feature: {
+        dataZoom: {
+          yAxisIndex: 'none',
+          title: {
+            zoom: '区域缩放',
+            back: '还原缩放',
+          },
+        },
+        restore: {
+          title: '还原',
+        },
+        saveAsImage: {
+          title: '保存图片',
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+        },
+      },
+      iconStyle: {
+        borderColor: textColor,
+      },
+      emphasis: {
+        iconStyle: {
+          borderColor: '#3b82f6',
+        },
+      },
+    },
     series,
   }
 })
@@ -89,7 +228,7 @@ const initChart = () => {
 
 const updateChart = () => {
   if (chartInstance) {
-    chartInstance.setOption(chartOption.value)
+    chartInstance.setOption(chartOption.value, { notMerge: false })
   }
 }
 
@@ -97,7 +236,16 @@ const resizeChart = () => {
   chartInstance?.resize()
 }
 
+// 监听数据变化
 watch(() => dataStore.records, updateChart, { deep: true })
+
+// 监听主题变化，重新渲染图表
+watch(() => themeStore.isDark, () => {
+  if (chartInstance) {
+    chartInstance.dispose()
+    initChart()
+  }
+})
 
 onMounted(() => {
   initChart()
@@ -112,7 +260,7 @@ onUnmounted(() => {
 
 <template>
   <div class="chart-container">
-    <NSpin :show="loading">
+    <NSpin :show="loading" description="加载中...">
       <div ref="chartRef" class="chart"></div>
     </NSpin>
   </div>
@@ -123,10 +271,20 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   min-height: 400px;
+  flex: 1;
 }
 
 .chart {
   width: 100%;
-  height: 500px;
+  height: 100%;
+  min-height: 450px;
+}
+
+.chart-container :deep(.n-spin-container) {
+  height: 100%;
+}
+
+.chart-container :deep(.n-spin-content) {
+  height: 100%;
 }
 </style>

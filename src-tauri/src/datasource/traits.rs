@@ -35,6 +35,9 @@ pub trait DataSource: Send + Sync {
     /// 获取可用标签列表
     async fn get_available_tags(&self, table: &str) -> AppResult<Vec<String>>;
 
+    /// 模糊搜索标签（从 TagDatabase 表）
+    async fn search_tags(&self, keyword: &str, limit: usize) -> AppResult<Vec<String>>;
+
     /// 查询历史数据
     async fn query_history(
         &self,

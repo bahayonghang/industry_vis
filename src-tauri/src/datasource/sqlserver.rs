@@ -117,6 +117,38 @@ impl DataSource for SqlServerSource {
         Ok(tags)
     }
 
+    async fn search_tags(&self, keyword: &str, limit: usize) -> AppResult<Vec<String>> {
+        let mut client = self.connect().await?;
+        
+        // 从 TagDatabase 表模糊搜索 TagName
+        let sql = format!(
+            r#"
+            SELECT DISTINCT TOP {} TagName 
+            FROM [TagDatabase] 
+            WHERE TagName LIKE '%{}%'
+            ORDER BY TagName
+            "#,
+            limit,
+            keyword.replace('\'', "''").replace('%', "[%]").replace('_', "[_]")
+        );
+        
+        let query = Query::new(&sql);
+        let stream = query.query(&mut client)
+            .await
+            .map_err(|e| AppError::Query(format!("搜索标签失败: {}", e)))?;
+        
+        let rows = stream.into_first_result()
+            .await
+            .map_err(|e| AppError::Query(format!("获取搜索结果失败: {}", e)))?;
+        
+        let tags = rows.iter()
+            .filter_map(|row| row.get::<&str, _>(0).map(|s| s.trim().to_string()))
+            .filter(|s| !s.is_empty())
+            .collect();
+        
+        Ok(tags)
+    }
+
     async fn query_history(
         &self,
         table: &str,

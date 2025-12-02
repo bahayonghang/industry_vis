@@ -9,12 +9,16 @@ declare module 'vue' {
   export interface GlobalComponents {
     ConnectionSettings: typeof import('./components/ConnectionSettings.vue')['default']
     DataTable: typeof import('./components/DataTable.vue')['default']
+    GroupEditView: typeof import('./components/GroupEditView.vue')['default']
+    KpiCards: typeof import('./components/KpiCards.vue')['default']
     LineChart: typeof import('./components/LineChart.vue')['default']
     NH2: typeof import('naive-ui')['NH2']
-    NTabPane: typeof import('naive-ui')['NTabPane']
-    NTabs: typeof import('naive-ui')['NTabs']
+    QueryToolbar: typeof import('./components/QueryToolbar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    TagGroupEditor: typeof import('./components/TagGroupEditor.vue')['default']
+    TagGroupTree: typeof import('./components/TagGroupTree.vue')['default']
+    TagSearchSelect: typeof import('./components/TagSearchSelect.vue')['default']
     TagSelector: typeof import('./components/TagSelector.vue')['default']
     TimeRangeSelector: typeof import('./components/TimeRangeSelector.vue')['default']
   }
