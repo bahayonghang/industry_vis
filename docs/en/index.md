@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: Industry Vis
-  text: Industrial Data Viewer
+  text: Industrial Data Visualization
   tagline: High-performance industrial data visualization desktop application built with Tauri
   actions:
     - theme: brand
@@ -16,21 +16,25 @@ hero:
 features:
   - icon: 🔌
     title: SQL Server Connection
-    details: Connect to SQL Server database with SQL authentication for secure industrial data access
+    details: Connect to SQL Server database with SQL authentication, supports Chinese tag fuzzy search
   - icon: 📊
     title: Time Series Visualization
-    details: ECharts-based line charts with zoom, pan, and multi-tag comparison
-  - icon: 📋
-    title: High-Performance Data Table
-    details: Virtual scrolling technology handles large datasets with sorting and filtering
+    details: ECharts-based line charts with zoom, pan, multi-tag comparison and tag group management
+  - icon: 🧹
+    title: Data Processing
+    details: Built-in outlier removal (3σ rule), time-series resampling (mean aggregation), smoothing filter (moving average)
   - icon: ⚙️
     title: Flexible Configuration
-    details: TOML configuration file with default database and table settings
+    details: Supports portable and installed modes, auto-persistent configuration, light/dark theme toggle
 ---
 
 ## Tech Stack
 
-- **Desktop Framework**: Tauri 2.x
-- **Backend**: Rust + Polars
-- **Frontend**: Vue 3 + Vite + Naive UI + ECharts
-- **Database**: SQL Server (tiberius)
+| Layer | Technology |
+|-------|------------|
+| Desktop Framework | Tauri 2.x |
+| Backend | Rust + Polars |
+| Frontend | Vue 3 + Vite + TypeScript |
+| UI Components | Naive UI |
+| Charts | ECharts |
+| Database | SQL Server (tiberius) |

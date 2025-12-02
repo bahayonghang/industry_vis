@@ -1,103 +1,146 @@
-# 工业数据查看系统 (Industry Vis)
+# Industry Vis
 
-基于 Tauri 的工业数据查看系统，用于读取、处理和展示工业运行数据。
+A Tauri-based industrial data visualization system for reading, processing, and displaying industrial operational data.
 
-## 功能特性
+[简体中文](./README_CN.md) | English
 
-- 🔌 SQL Server 数据库连接（SQL 认证）
-- 📊 时序数据折线图展示
-- 📋 数据表格展示（虚拟滚动）
-- 🕐 时间范围选择（预设 + 自定义）
-- 🏷️ 标签多选过滤
-- 💾 CSV 数据导出
-- ⚙️ TOML 配置文件
+## Features
 
-## 技术栈
+### Data Connection
+- 🔌 SQL Server database connection (SQL Authentication)
+- 🔍 Tag fuzzy search (supports Chinese)
 
-- **桌面框架**: Tauri 2.x
-- **后端**: Rust + Polars
-- **前端**: Vue 3 + Vite + Naive UI + ECharts
-- **数据库**: SQL Server (tiberius)
+### Data Visualization
+- 📊 Time-series line charts (ECharts)
+- 🕐 Time range selection (presets + custom)
+- 🏷️ Tag group management (up to 20 tags per group)
 
-## 快速开始
+### Data Processing
+- 🧹 Outlier removal (3σ rule)
+- 📉 Time-series resampling (mean aggregation)
+- 📈 Smoothing filter (moving average)
+- ⚡ Data downsampling (auto-optimization for rendering)
 
-### 环境要求
+### Other
+- 💾 CSV data export
+- ⚙️ Persistent configuration (portable/installed mode)
+- 🌓 Light/Dark theme toggle
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Desktop Framework | Tauri 2.x |
+| Backend | Rust + Polars |
+| Frontend | Vue 3 + Vite + TypeScript |
+| UI Components | Naive UI |
+| Charts | ECharts |
+| Database | SQL Server (tiberius) |
+
+## Quick Start
+
+### Requirements
 
 - Node.js >= 18
 - Rust >= 1.70
 - Windows 10/11 (WebView2)
+- [Just](https://github.com/casey/just) (optional, for command simplification)
 
-### 安装依赖
+### Install Dependencies
 
 ```bash
-# 安装前端依赖
 npm install
-
-# Rust 依赖会在首次构建时自动安装
 ```
 
-### 配置数据库
-
-1. 复制 `config.example.toml` 为 `config.toml`
-2. 修改数据库连接信息：
-
-```toml
-[database]
-server = "localhost"
-port = 1433
-database = "控制器数据库"
-username = "sa"
-password = "your_password"
-
-[query]
-default_table = "历史表"
-```
-
-### 开发模式
+### Development Mode
 
 ```bash
+# Using just
+just dev
+
+# Or using npm directly
 npm run tauri:dev
 ```
 
-### 生产构建
+### Build
 
 ```bash
-npm run tauri:build
+# Quick portable build (for daily development)
+just build
+# Output: src-tauri/target/release/industry-vis.exe
+
+# Build installer (for release)
+just release
+# Output: src-tauri/target/release/bundle/nsis/Industry Vis_x.x.x_x64-setup.exe
 ```
 
-构建产物位于 `src-tauri/target/release/bundle/`。
+## Configuration
 
-## 数据库表结构
+After first launch, configure the database connection in the **Settings** page:
 
-系统默认查询 `历史表`，表结构如下：
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Server | SQL Server address | localhost |
+| Port | Database port | 1433 |
+| Database | Database name | 控制器数据库 |
+| Username | SQL authentication username | sa |
+| Default Table | History data table name | 历史表 |
 
-| 列名 | 类型 | 说明 |
-|------|------|------|
-| DateTime | datetime | 时间戳 |
-| TagName | nchar(50) | 标签名称 |
-| TagVal | real | 数值 |
-| TagQuality | nchar(10) | 质量标志 |
+Configuration file location:
+- **Portable mode**: `config.toml` in the same directory as exe
+- **Installed mode**: `%APPDATA%\IndustryVis\config.toml`
 
-## 项目结构
+## Database Schema
+
+### History Table
+
+| Column | Type | Description |
+|--------|------|-------------|
+| DateTime | datetime | Timestamp |
+| TagName | nvarchar(50) | Tag name |
+| TagVal | real | Value |
+| TagQuality | nchar(10) | Quality flag |
+
+### TagDataBase (for tag search)
+
+| Column | Type | Description |
+|--------|------|-------------|
+| TagName | nvarchar(50) | Tag name |
+
+## Project Structure
 
 ```
 industry_vis/
-├── src/                    # Vue 前端源码
-│   ├── components/         # 组件
-│   ├── views/              # 页面
-│   ├── stores/             # Pinia 状态管理
-│   └── types/              # TypeScript 类型
-├── src-tauri/              # Rust 后端源码
+├── src/                      # Vue frontend source
+│   ├── components/           # Components
+│   │   ├── GroupEditView.vue # Group editing (with data processing)
+│   │   ├── LineChart.vue     # Line chart
+│   │   └── TagSearchModal.vue# Tag search modal
+│   ├── views/                # Pages
+│   ├── stores/               # Pinia state management
+│   └── types/                # TypeScript types
+├── src-tauri/                # Rust backend source
 │   ├── src/
-│   │   ├── commands.rs     # Tauri 命令
-│   │   ├── config.rs       # 配置管理
-│   │   ├── datasource/     # 数据源抽象
-│   │   └── models.rs       # 数据模型
+│   │   ├── commands.rs       # Tauri commands
+│   │   ├── config.rs         # Configuration management
+│   │   ├── data_processing.rs# Data processing module
+│   │   ├── datasource/       # Data source abstraction
+│   │   ├── models.rs         # Data models
+│   │   └── tag_group.rs      # Tag group management
 │   └── Cargo.toml
-├── config.example.toml     # 配置文件示例
+├── docs/                     # VitePress documentation
+├── justfile                  # Just command configuration
 └── package.json
 ```
 
-## 许可证
+## Documentation
+
+For full documentation, visit the [docs/](./docs/) directory or run:
+
+```bash
+just docs
+```
+
+## License
 
 MIT
