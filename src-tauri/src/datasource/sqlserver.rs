@@ -217,14 +217,16 @@ impl DataSource for SqlServerSource {
             _ => String::new(),
         };
         
+        // 优化SQL：
+        // 1. 使用 WITH (NOLOCK) 减少锁等待，提升并发查询性能
+        // 2. 只按 DateTime 排序，充分利用 DateTime 索引
+        // 3. TagName 过滤放在 DateTime 范围过滤之后，利用联合索引
         let sql = format!(
-            r#"
-            SELECT DateTime, TagName, TagVal, TagQuality 
-            FROM [{}]
-            WHERE DateTime >= '{}' AND DateTime <= '{}'
+            r#"SELECT DateTime, TagName, TagVal, TagQuality 
+            FROM [{}] WITH (NOLOCK)
+            WHERE DateTime BETWEEN '{}' AND '{}'
             {}
-            ORDER BY DateTime, TagName
-            "#,
+            ORDER BY DateTime"#,
             table.replace(']', "]]"),
             start_time.replace('\'', "''"),
             end_time.replace('\'', "''"),
