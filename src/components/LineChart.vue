@@ -1,9 +1,32 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { NSpin } from 'naive-ui'
-import * as echarts from 'echarts'
+// ECharts 按需导入，减少约 700KB 体积
+import * as echarts from 'echarts/core'
+import { LineChart as EChartsLineChart } from 'echarts/charts'
+import {
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  DataZoomComponent,
+  ToolboxComponent,
+} from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import { useDataStore } from '@/stores/data'
 import { useThemeStore } from '@/stores/theme'
+
+// 注册必要的组件
+echarts.use([
+  EChartsLineChart,
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  DataZoomComponent,
+  ToolboxComponent,
+  CanvasRenderer,
+])
 
 const dataStore = useDataStore()
 const themeStore = useThemeStore()
