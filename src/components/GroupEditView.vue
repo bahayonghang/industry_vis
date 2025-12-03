@@ -22,9 +22,10 @@ import {
   SaveOutline,
   TrashOutline,
   AddOutline,
-  RefreshOutline,
   PlayOutline,
-  TimeOutline
+  TimeOutline,
+  FlashOutline,
+  CheckmarkCircleOutline
 } from '@vicons/ionicons5'
 import { useTagGroupStore } from '@/stores/tagGroup'
 import { useDataStore } from '@/stores/data'
@@ -80,7 +81,12 @@ const showCustomPicker = ref(false)
 // 是否达到标签上限
 const isMaxReached = computed(() => selectedTags.value.length >= 20)
 const loading = computed(() => dataStore.loading)
-const hasData = computed(() => dataStore.records.length > 0)
+const hasData = computed(() => dataStore.records.length > 0 || dataStore.chartSeries.length > 0)
+
+// 缓存状态
+const cacheHit = computed(() => dataStore.cacheHit)
+const queryTimeMs = computed(() => dataStore.queryTimeMs)
+const totalProcessed = computed(() => dataStore.totalProcessed)
 
 // 检测是否有变更
 watch([groupName, selectedTags, processingConfig], () => {
@@ -123,7 +129,8 @@ function loadGroupData() {
       dataStore.setSelectedTags(group.tags)
       const [start, end] = getPresetRange('today')
       dataStore.setTimeRange(start, end)
-      dataStore.fetchData(processingConfig.value)
+      // 使用 V2 接口获取预分组数据
+      dataStore.fetchDataV2(processingConfig.value, false)
     }
   }
 }
@@ -184,13 +191,18 @@ function handleCustomRangeChange(range: [number, number] | null) {
   }
 }
 
-function handleQuery() {
+function handleQuery(forceRefresh = false) {
   if (selectedTags.value.length === 0) {
     message.warning('请先添加标签')
     return
   }
   dataStore.setSelectedTags(selectedTags.value)
-  dataStore.fetchData(processingConfig.value)
+  // 使用 V2 接口获取预分组数据
+  dataStore.fetchDataV2(processingConfig.value, forceRefresh)
+}
+
+function handleForceRefresh() {
+  handleQuery(true)
 }
 
 // 标签操作
@@ -371,7 +383,7 @@ async function handleDelete() {
           size="small"
           :loading="loading"
           :disabled="selectedTags.length === 0"
-          @click="handleQuery"
+          @click="() => handleQuery(false)"
         >
           <template #icon>
             <NIcon :component="PlayOutline" />
@@ -386,16 +398,35 @@ async function handleDelete() {
               tertiary
               :loading="loading"
               :disabled="selectedTags.length === 0"
-              @click="handleQuery"
+              @click="handleForceRefresh"
             >
               <template #icon>
-                <NIcon :component="RefreshOutline" />
+                <NIcon :component="FlashOutline" />
               </template>
             </NButton>
           </template>
-          刷新数据
+          强制刷新（绕过缓存）
         </NTooltip>
       </NSpace>
+      
+      <!-- 查询状态指示器 -->
+      <div v-if="hasData && !loading" class="query-status">
+        <NTooltip>
+          <template #trigger>
+            <NTag :type="cacheHit ? 'success' : 'info'" size="small" round>
+              <template #icon>
+                <NIcon :component="cacheHit ? CheckmarkCircleOutline : FlashOutline" :size="14" />
+              </template>
+              {{ cacheHit ? '缓存' : '实时' }}
+            </NTag>
+          </template>
+          {{ cacheHit ? '数据来自缓存' : '数据来自数据库' }}
+        </NTooltip>
+        
+        <span class="query-time">
+          {{ totalProcessed.toLocaleString() }} 条 · {{ queryTimeMs }}ms
+        </span>
+      </div>
     </div>
     
     <!-- 标签管理条 -->
@@ -489,7 +520,7 @@ async function handleDelete() {
     
     <!-- 图表区域 -->
     <div class="chart-container glass-card">
-      <LineChart v-if="hasData" />
+      <LineChart v-if="hasData" :use-v2="true" />
       <div v-else class="empty-chart">
         <div class="empty-content">
           <NIcon :component="TimeOutline" :size="48" class="empty-icon" />
@@ -668,5 +699,20 @@ async function handleDelete() {
 .empty-content p {
   margin: 0;
   font-size: 14px;
+}
+
+/* 查询状态指示器 */
+.query-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  padding-left: 12px;
+}
+
+.query-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'Consolas', 'Monaco', monospace;
 }
 </style>

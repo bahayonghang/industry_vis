@@ -35,10 +35,35 @@ export interface QueryParams {
   offset?: number
 }
 
-// 查询结果
+// 查询结果 (V1 兼容格式)
 export interface QueryResult {
   records: HistoryRecord[]
   total: number
+}
+
+// 图表系列数据 (V2 格式，按标签预分组)
+export interface ChartSeriesData {
+  tagName: string
+  data: [number, number][]  // [[timestamp_ms, value], ...]
+}
+
+// 查询结果 V2 (预分组格式，优化前端渲染)
+export interface QueryResultV2 {
+  series: ChartSeriesData[]
+  totalRaw: number
+  totalProcessed: number
+  cacheHit: boolean
+  queryTimeMs: number
+}
+
+// 缓存统计信息
+export interface CacheStats {
+  hits: number
+  misses: number
+  hitRate: number
+  entries: number
+  maxEntries: number
+  estimatedMemoryBytes: number
 }
 
 // 连接测试结果

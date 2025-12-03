@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import type { DataProcessingConfig, HistoryRecord, QueryParams, QueryResult } from '@/types'
+import type { CacheStats, ChartSeriesData, DataProcessingConfig, HistoryRecord, QueryParams, QueryResult, QueryResultV2 } from '@/types'
 
 /**
  * 将 Date 对象格式化为本地时间字符串（用于数据库查询）
@@ -13,8 +13,9 @@ function formatLocalDateTime(date: Date): string {
 }
 
 export const useDataStore = defineStore('data', () => {
-  // State
-  const records = ref<HistoryRecord[]>([])
+  // State - 使用 shallowRef 避免大数据深度响应式追踪
+  const records = shallowRef<HistoryRecord[]>([])
+  const chartSeries = shallowRef<ChartSeriesData[]>([])  // V2 预分组数据
   const availableTags = ref<string[]>([])
   const selectedTags = ref<string[]>([])
   const startTime = ref<Date>(new Date(Date.now() - 24 * 60 * 60 * 1000))
@@ -22,6 +23,9 @@ export const useDataStore = defineStore('data', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const total = ref(0)
+  const totalProcessed = ref(0)
+  const cacheHit = ref(false)
+  const queryTimeMs = ref(0)
 
   // Actions
   const setTimeRange = (start: Date, end: Date) => {
@@ -43,7 +47,10 @@ export const useDataStore = defineStore('data', () => {
     }
   }
 
-  const fetchData = async (processingConfig?: DataProcessingConfig) => {
+  /**
+   * 使用 V1 接口获取数据（保持向后兼容）
+   */
+  const fetchData = async (processingConfig?: DataProcessingConfig, forceRefresh = false) => {
     loading.value = true
     error.value = null
     
@@ -57,6 +64,7 @@ export const useDataStore = defineStore('data', () => {
       const result = await invoke<QueryResult>('query_history', { 
         params,
         processingConfig: processingConfig || null,
+        forceRefresh,
       })
       records.value = result.records
       total.value = result.total
@@ -66,6 +74,67 @@ export const useDataStore = defineStore('data', () => {
       records.value = []
     } finally {
       loading.value = false
+    }
+  }
+
+  /**
+   * 使用 V2 接口获取数据（预分组格式，优化渲染）
+   */
+  const fetchDataV2 = async (processingConfig?: DataProcessingConfig, forceRefresh = false) => {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const params: QueryParams = {
+        startTime: formatLocalDateTime(startTime.value),
+        endTime: formatLocalDateTime(endTime.value),
+        tags: selectedTags.value.length > 0 ? selectedTags.value : undefined,
+      }
+      
+      const result = await invoke<QueryResultV2>('query_history_v2', { 
+        params,
+        processingConfig: processingConfig || null,
+        forceRefresh,
+      })
+      
+      chartSeries.value = result.series
+      total.value = result.totalRaw
+      totalProcessed.value = result.totalProcessed
+      cacheHit.value = result.cacheHit
+      queryTimeMs.value = result.queryTimeMs
+      
+      // 同时更新 records 以保持兼容（如果需要）
+      // records.value = seriesDataToRecords(result.series)
+    } catch (e) {
+      console.error('Failed to fetch data V2:', e)
+      error.value = String(e)
+      chartSeries.value = []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * 清空缓存
+   */
+  const clearCache = async () => {
+    try {
+      await invoke('clear_cache')
+    } catch (e) {
+      console.error('Failed to clear cache:', e)
+      error.value = String(e)
+    }
+  }
+
+  /**
+   * 获取缓存统计
+   */
+  const getCacheStats = async (): Promise<CacheStats | null> => {
+    try {
+      return await invoke<CacheStats>('get_cache_stats')
+    } catch (e) {
+      console.error('Failed to get cache stats:', e)
+      return null
     }
   }
 
@@ -92,6 +161,7 @@ export const useDataStore = defineStore('data', () => {
   return {
     // State
     records,
+    chartSeries,
     availableTags,
     selectedTags,
     startTime,
@@ -99,11 +169,17 @@ export const useDataStore = defineStore('data', () => {
     loading,
     error,
     total,
+    totalProcessed,
+    cacheHit,
+    queryTimeMs,
     // Actions
     setTimeRange,
     setSelectedTags,
     fetchAvailableTags,
     fetchData,
+    fetchDataV2,
+    clearCache,
+    getCacheStats,
     exportToCsv,
   }
 })

@@ -15,6 +15,7 @@ import {
 import { CanvasRenderer } from 'echarts/renderers'
 import { useDataStore } from '@/stores/data'
 import { useThemeStore } from '@/stores/theme'
+import type { ChartSeriesData } from '@/types'
 
 // 注册必要的组件
 echarts.use([
@@ -28,12 +29,20 @@ echarts.use([
   CanvasRenderer,
 ])
 
+const props = defineProps<{
+  useV2?: boolean  // 是否使用 V2 接口数据
+}>()
+
 const dataStore = useDataStore()
 const themeStore = useThemeStore()
 const chartRef = ref<HTMLDivElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
 
 const loading = computed(() => dataStore.loading)
+// V2 状态（由父组件通过 dataStore 直接访问）
+// const cacheHit = computed(() => dataStore.cacheHit)
+// const queryTimeMs = computed(() => dataStore.queryTimeMs)
+// const totalProcessed = computed(() => dataStore.totalProcessed)
 
 // 工业风配色方案
 const colorPalette = [
@@ -48,7 +57,6 @@ const colorPalette = [
 ]
 
 const chartOption = computed(() => {
-  const records = dataStore.records
   const isDark = themeStore.isDark
   
   // 主题相关颜色
@@ -56,40 +64,76 @@ const chartOption = computed(() => {
   const borderColor = isDark ? '#334155' : '#e2e8f0'
   const bgColor = 'transparent'
   
-  // Group data by tag
-  const seriesData: Record<string, { time: string; value: number }[]> = {}
+  // 根据接口版本选择数据源
+  let series: any[]
   
-  for (const record of records) {
-    if (!seriesData[record.tagName]) {
-      seriesData[record.tagName] = []
-    }
-    seriesData[record.tagName].push({
-      time: record.dateTime,
-      value: record.tagVal,
-    })
-  }
-  
-  // Create series for each tag
-  const series = Object.entries(seriesData).map(([tagName, data]) => ({
-    name: tagName,
-    type: 'line',
-    smooth: true,
-    showSymbol: false,
-    symbolSize: 6,
-    lineStyle: {
-      width: 2,
-    },
-    areaStyle: {
-      opacity: 0.1,
-    },
-    emphasis: {
-      focus: 'series',
+  if (props.useV2 && dataStore.chartSeries.length > 0) {
+    // V2 接口：直接使用预分组数据
+    series = dataStore.chartSeries.map((s: ChartSeriesData) => ({
+      name: s.tagName,
+      type: 'line',
+      smooth: true,
+      showSymbol: false,
+      symbolSize: 6,
+      // 大数据优化配置
+      sampling: 'lttb',           // Largest-Triangle-Three-Buckets 降采样
+      large: true,                // 启用大数据优化
+      largeThreshold: 2000,       // 超过 2000 点启用
+      progressive: 5000,          // 渐进渲染
+      progressiveThreshold: 3000, // 超过 3000 点启用渐进渲染
       lineStyle: {
-        width: 3,
+        width: 2,
       },
-    },
-    data: data.map(d => [d.time, d.value]),
-  }))
+      areaStyle: {
+        opacity: 0.1,
+      },
+      emphasis: {
+        focus: 'series',
+        lineStyle: {
+          width: 3,
+        },
+      },
+      data: s.data,  // [[timestamp_ms, value], ...]
+    }))
+  } else {
+    // V1 接口：需要分组处理
+    const records = dataStore.records
+    const seriesData: Record<string, { time: string; value: number }[]> = {}
+    
+    for (const record of records) {
+      if (!seriesData[record.tagName]) {
+        seriesData[record.tagName] = []
+      }
+      seriesData[record.tagName].push({
+        time: record.dateTime,
+        value: record.tagVal,
+      })
+    }
+    
+    series = Object.entries(seriesData).map(([tagName, data]) => ({
+      name: tagName,
+      type: 'line',
+      smooth: true,
+      showSymbol: false,
+      symbolSize: 6,
+      sampling: 'lttb',
+      large: true,
+      largeThreshold: 2000,
+      lineStyle: {
+        width: 2,
+      },
+      areaStyle: {
+        opacity: 0.1,
+      },
+      emphasis: {
+        focus: 'series',
+        lineStyle: {
+          width: 3,
+        },
+      },
+      data: data.map(d => [d.time, d.value]),
+    }))
+  }
   
   return {
     color: colorPalette,
@@ -259,8 +303,12 @@ const resizeChart = () => {
   chartInstance?.resize()
 }
 
-// 监听数据变化
-watch(() => dataStore.records, updateChart, { deep: true })
+// 监听数据变化 - 使用引用监听而非深度监听
+watch(
+  () => props.useV2 ? dataStore.chartSeries : dataStore.records,
+  updateChart,
+  { flush: 'post' }  // 使用 post 确保 DOM 更新后再渲染
+)
 
 // 监听主题变化，重新渲染图表
 watch(() => themeStore.isDark, () => {
