@@ -31,7 +31,17 @@ tokio-util = { version = "0.7", features = ["compat"] }
 async-trait = "0.1"
 
 # Data processing
-polars = { version = "0.44", features = ["lazy", "csv", "dtype-datetime"] }
+polars = { version = "0.44", features = [
+    "lazy",
+    "csv", 
+    "dtype-datetime",
+    "rolling_window",     # 移动窗口函数
+    "dynamic_group_by",   # 时间序列重采样
+    "round_series",       # 数值舍入
+] }
+
+# Caching
+lru = "0.12"
 
 # Logging
 tracing = "0.1"

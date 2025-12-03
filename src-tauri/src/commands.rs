@@ -1,12 +1,15 @@
 use std::fs::File;
 use std::io::Write;
+use std::sync::Arc;
+use tauri::State;
 use tracing::{info, error, debug};
 
+use crate::cache::{CacheKey, CacheStats, QueryCache};
 use crate::config::{AppConfig, DatabaseConfig};
 use crate::data_processing;
 use crate::datasource::{DataSource, SqlServerSource};
 use crate::error::AppResult;
-use crate::models::{ConnectionTestResult, DataProcessingConfig, HistoryRecord, QueryParams, QueryResult};
+use crate::models::{ConnectionTestResult, DataProcessingConfig, HistoryRecord, QueryParams, QueryResult, QueryResultV2};
 use crate::tag_group::{TagGroup, TagGroupConfig};
 
 /// 加载配置
@@ -57,22 +60,52 @@ pub async fn get_available_tags() -> AppResult<Vec<String>> {
 }
 
 /// 查询历史数据
+/// 
+/// 支持缓存：相同参数的查询会复用缓存结果
 #[tauri::command]
 pub async fn query_history(
     params: QueryParams,
     processing_config: Option<DataProcessingConfig>,
+    force_refresh: Option<bool>,
+    cache: State<'_, Arc<QueryCache>>,
 ) -> AppResult<QueryResult> {
     let tag_count = params.tags.as_ref().map(|t| t.len()).unwrap_or(0);
+    let force_refresh = force_refresh.unwrap_or(false);
+    
     info!(target: "industry_vis_lib::commands", 
-        "查询历史数据 - 时间: {} ~ {}, 标签数: {}", 
-        params.start_time, params.end_time, tag_count
+        "查询历史数据 - 时间: {} ~ {}, 标签数: {}, 强制刷新: {}", 
+        params.start_time, params.end_time, tag_count, force_refresh
     );
     
     let config = AppConfig::load()?;
-    let source = SqlServerSource::new(config.database);
-    
     let tags_ref = params.tags.as_ref().map(|v| v.as_slice());
     
+    // 构建缓存键
+    let cache_key = CacheKey::new(
+        &config.query.default_table,
+        &params.start_time,
+        &params.end_time,
+        tags_ref,
+        processing_config.as_ref(),
+    );
+    
+    // 检查缓存（非强制刷新时）
+    if !force_refresh {
+        if let Some(cached_records) = cache.get(&cache_key).await {
+            info!(target: "industry_vis_lib::commands", 
+                "缓存命中，返回 {} 条记录", cached_records.len()
+            );
+            
+            // 应用分页
+            let total = cached_records.len();
+            let records = apply_pagination(cached_records, params.offset, params.limit);
+            
+            return Ok(QueryResult { records, total });
+        }
+    }
+    
+    // 缓存未命中或强制刷新，从数据库查询
+    let source = SqlServerSource::new(config.database);
     let records = source.query_history(
         &config.query.default_table,
         &params.start_time,
@@ -84,10 +117,30 @@ pub async fn query_history(
     info!(target: "industry_vis_lib::commands", "查询到 {} 条原始记录", total);
     
     // 使用数据处理模块进行处理（异常值剔除、重采样、平滑滤波、降采样）
-    let records = data_processing::process_query_result(records, processing_config.as_ref())?;
+    let processed_records = data_processing::process_query_result(records, processing_config.as_ref())?;
     
-    // Apply pagination if specified
-    let records = match (params.offset, params.limit) {
+    // 将处理后的数据存入缓存
+    cache.put(cache_key, processed_records.clone()).await;
+    
+    // 应用分页
+    let records = apply_pagination(processed_records, params.offset, params.limit);
+    
+    info!(target: "industry_vis_lib::commands", "处理后返回 {} 条记录", records.len());
+    
+    // 返回原始总数，便于前端知道数据是否被处理
+    Ok(QueryResult { 
+        records, 
+        total,  // 原始数据量
+    })
+}
+
+/// 应用分页参数
+fn apply_pagination(
+    records: Vec<HistoryRecord>,
+    offset: Option<usize>,
+    limit: Option<usize>,
+) -> Vec<HistoryRecord> {
+    match (offset, limit) {
         (Some(offset), Some(limit)) => {
             records.into_iter().skip(offset).take(limit).collect()
         }
@@ -98,14 +151,100 @@ pub async fn query_history(
             records.into_iter().take(limit).collect()
         }
         (None, None) => records,
-    };
+    }
+}
+
+/// 查询历史数据 V2 (预分组格式，优化前端渲染)
+/// 
+/// 返回按标签分组的 series 数据，可直接用于 ECharts
+#[tauri::command]
+pub async fn query_history_v2(
+    params: QueryParams,
+    processing_config: Option<DataProcessingConfig>,
+    force_refresh: Option<bool>,
+    cache: State<'_, Arc<QueryCache>>,
+) -> AppResult<QueryResultV2> {
+    use std::time::Instant;
     
-    info!(target: "industry_vis_lib::commands", "处理后返回 {} 条记录", records.len());
+    let start_time = Instant::now();
+    let tag_count = params.tags.as_ref().map(|t| t.len()).unwrap_or(0);
+    let force_refresh = force_refresh.unwrap_or(false);
     
-    // 返回原始总数，便于前端知道数据是否被处理
-    Ok(QueryResult { 
-        records, 
-        total,  // 原始数据量
+    info!(target: "industry_vis_lib::commands", 
+        "查询历史数据 V2 - 时间: {} ~ {}, 标签数: {}, 强制刷新: {}", 
+        params.start_time, params.end_time, tag_count, force_refresh
+    );
+    
+    let config = AppConfig::load()?;
+    let tags_ref = params.tags.as_ref().map(|v| v.as_slice());
+    
+    // 构建缓存键
+    let cache_key = CacheKey::new(
+        &config.query.default_table,
+        &params.start_time,
+        &params.end_time,
+        tags_ref,
+        processing_config.as_ref(),
+    );
+    
+    // 检查缓存（非强制刷新时）
+    if !force_refresh {
+        if let Some(cached_records) = cache.get(&cache_key).await {
+            let query_time_ms = start_time.elapsed().as_millis() as u64;
+            let total_processed = cached_records.len();
+            
+            info!(target: "industry_vis_lib::commands", 
+                "缓存命中 V2，返回 {} 条记录，耗时 {}ms", total_processed, query_time_ms
+            );
+            
+            // 转换为 series 格式
+            let series = data_processing::records_to_series(&cached_records);
+            
+            return Ok(QueryResultV2 {
+                series,
+                total_raw: total_processed, // 缓存中已是处理后的数据
+                total_processed,
+                cache_hit: true,
+                query_time_ms,
+            });
+        }
+    }
+    
+    // 缓存未命中或强制刷新，从数据库查询
+    let source = SqlServerSource::new(config.database);
+    let records = source.query_history(
+        &config.query.default_table,
+        &params.start_time,
+        &params.end_time,
+        tags_ref,
+    ).await?;
+    
+    let total_raw = records.len();
+    info!(target: "industry_vis_lib::commands", "查询到 {} 条原始记录", total_raw);
+    
+    // 使用数据处理模块进行处理
+    let processed_records = data_processing::process_query_result(records, processing_config.as_ref())?;
+    let total_processed = processed_records.len();
+    
+    // 将处理后的数据存入缓存
+    cache.put(cache_key, processed_records.clone()).await;
+    
+    // 转换为 series 格式
+    let series = data_processing::records_to_series(&processed_records);
+    
+    let query_time_ms = start_time.elapsed().as_millis() as u64;
+    
+    info!(target: "industry_vis_lib::commands", 
+        "处理后返回 {} 条记录，{} 个系列，耗时 {}ms", 
+        total_processed, series.len(), query_time_ms
+    );
+    
+    Ok(QueryResultV2 {
+        series,
+        total_raw,
+        total_processed,
+        cache_hit: false,
+        query_time_ms,
     })
 }
 
@@ -132,6 +271,25 @@ pub async fn export_to_csv(records: Vec<HistoryRecord>, file_path: String) -> Ap
     
     info!(target: "industry_vis_lib::commands", "CSV导出完成");
     Ok(())
+}
+
+// ============== 缓存管理命令 ==============
+
+/// 清空查询缓存
+#[tauri::command]
+pub async fn clear_cache(cache: State<'_, Arc<QueryCache>>) -> AppResult<()> {
+    info!(target: "industry_vis_lib::commands", "清空查询缓存");
+    // 先清理过期条目，再清空全部
+    cache.evict_expired().await;
+    cache.clear().await;
+    Ok(())
+}
+
+/// 获取缓存统计信息
+#[tauri::command]
+pub async fn get_cache_stats(cache: State<'_, Arc<QueryCache>>) -> AppResult<CacheStats> {
+    debug!(target: "industry_vis_lib::commands", "获取缓存统计");
+    Ok(cache.get_stats().await)
 }
 
 // ============== 标签分组相关命令 ==============

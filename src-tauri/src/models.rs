@@ -24,12 +24,38 @@ pub struct QueryParams {
     pub offset: Option<usize>,
 }
 
-/// 查询结果
+/// 查询结果 (V1 兼容格式)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryResult {
     pub records: Vec<HistoryRecord>,
     pub total: usize,
+}
+
+/// 图表系列数据 (V2 格式，按标签预分组)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChartSeriesData {
+    /// 标签名称
+    pub tag_name: String,
+    /// 数据点 [[timestamp_ms, value], ...]
+    pub data: Vec<[f64; 2]>,
+}
+
+/// 查询结果 V2 (预分组格式，优化前端渲染)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryResultV2 {
+    /// 按标签分组的系列数据
+    pub series: Vec<ChartSeriesData>,
+    /// 原始数据总量
+    pub total_raw: usize,
+    /// 处理后数据量
+    pub total_processed: usize,
+    /// 是否命中缓存
+    pub cache_hit: bool,
+    /// 查询耗时（毫秒）
+    pub query_time_ms: u64,
 }
 
 /// 连接测试结果

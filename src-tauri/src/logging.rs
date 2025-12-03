@@ -7,7 +7,10 @@
 
 use std::path::PathBuf;
 use std::fs;
-use tracing_appender::rolling::{RollingFileAppender, Rotation};
+use tracing_appender::{
+    non_blocking::WorkerGuard,
+    rolling::{RollingFileAppender, Rotation},
+};
 use tracing_subscriber::{
     fmt::{self, format::FmtSpan},
     layer::SubscriberExt,
@@ -70,8 +73,15 @@ fn cleanup_old_logs(log_dir: &PathBuf, prefix: &str, max_days: u32) {
     }
 }
 
+/// 日志系统 Guard，持有此结构直到应用退出以确保日志正确刷新
+pub struct LogGuards {
+    _app_guard: WorkerGuard,
+    _sql_guard: WorkerGuard,
+}
+
 /// 初始化日志系统
-pub fn init_logging() -> Result<(), Box<dyn std::error::Error>> {
+/// 返回 LogGuards，必须持有直到应用退出以确保日志正确刷新
+pub fn init_logging() -> Result<LogGuards, Box<dyn std::error::Error>> {
     let log_dir = get_log_dir();
     
     // 清理超过14天的日志
@@ -94,9 +104,13 @@ pub fn init_logging() -> Result<(), Box<dyn std::error::Error>> {
         .max_log_files(14)
         .build(&log_dir)?;
     
+    // 使用 non_blocking 包装，返回 guard 以确保退出时刷新
+    let (app_writer, app_guard) = tracing_appender::non_blocking(app_appender);
+    let (sql_writer, sql_guard) = tracing_appender::non_blocking(sql_appender);
+    
     // 前台日志层
     let app_layer = fmt::layer()
-        .with_writer(app_appender)
+        .with_writer(app_writer)
         .with_ansi(false)
         .with_target(true)
         .with_thread_ids(false)
@@ -106,7 +120,7 @@ pub fn init_logging() -> Result<(), Box<dyn std::error::Error>> {
     
     // SQL 日志层
     let sql_layer = fmt::layer()
-        .with_writer(sql_appender)
+        .with_writer(sql_writer)
         .with_ansi(false)
         .with_target(true)
         .with_thread_ids(false)
@@ -129,7 +143,10 @@ pub fn init_logging() -> Result<(), Box<dyn std::error::Error>> {
     
     tracing::info!(target: "industry_vis_lib::commands", "日志系统初始化完成，日志目录: {}", log_dir.display());
     
-    Ok(())
+    Ok(LogGuards {
+        _app_guard: app_guard,
+        _sql_guard: sql_guard,
+    })
 }
 
 /// 记录前台操作
