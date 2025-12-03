@@ -90,10 +90,17 @@ async function handleDelete(group: TagGroup, event: Event) {
   }
 }
 
+// 获取分组中所有标签
+function getAllTags(group: TagGroup): string[] {
+  return (group.charts || []).flatMap(c => c.tags || [])
+}
+
 // 选择分组（应用标签查询）
 function handleSelect(group: TagGroup) {
+  const allTags = getAllTags(group)
+  
   // 如果分组为空，直接进入编辑
-  if (group.tags.length === 0) {
+  if (allTags.length === 0) {
     emit('edit', group.id)
     return
   }
@@ -119,9 +126,10 @@ function handleSelect(group: TagGroup) {
 
 // 应用分组
 function applyGroup(group: TagGroup) {
+  const allTags = getAllTags(group)
   tagGroupStore.selectGroup(group.id)
-  dataStore.setSelectedTags(group.tags)
-  message.info(`已应用分组 "${group.name}"，包含 ${group.tags.length} 个标签`)
+  dataStore.setSelectedTags(allTags)
+  message.info(`已应用分组 "${group.name}"，包含 ${allTags.length} 个标签`)
 }
 
 // 需要导入 h 函数
@@ -175,14 +183,14 @@ import { h } from 'vue'
           class="group-item"
           :class="{ 
             active: tagGroupStore.selectedGroupId === group.id,
-            empty: group.tags.length === 0
+            empty: getAllTags(group).length === 0
           }"
           @click="handleSelect(group)"
         >
           <div class="group-info">
             <NIcon :component="AnalyticsOutline" :size="16" class="group-icon" />
             <span class="group-name">{{ group.name }}</span>
-            <span v-if="group.tags.length > 0" class="group-count">({{ group.tags.length }})</span>
+            <span v-if="getAllTags(group).length > 0" class="group-count">({{ getAllTags(group).length }})</span>
             <span v-else class="group-empty-hint">点击添加标签</span>
           </div>
           

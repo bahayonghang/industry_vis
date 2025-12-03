@@ -20,12 +20,14 @@ import {
   ServerOutline,
   PricetagsOutline,
   TimeOutline,
-  ChevronForwardOutline
+  ChevronForwardOutline,
+  AnalyticsOutline
 } from '@vicons/ionicons5'
 import MainLayout from '@/layouts/MainLayout.vue'
 import GroupEditView from '@/components/GroupEditView.vue'
 import { useTagGroupStore } from '@/stores/tagGroup'
 import { useConfigStore } from '@/stores/config'
+import { APP_VERSION } from '@/version'
 
 const tagGroupStore = useTagGroupStore()
 const configStore = useConfigStore()
@@ -46,8 +48,6 @@ const loading = computed(() => tagGroupStore.loading)
 const isConnected = computed(() => configStore.isConnected)
 const dbConfig = computed(() => configStore.config?.database)
 
-// 版本号
-const appVersion = '0.2.0'
 
 onMounted(async () => {
   await tagGroupStore.loadGroups()
@@ -119,14 +119,17 @@ function formatTime(timestamp: string): string {
     <div v-else class="home-view">
       <!-- 页面标题 -->
       <div class="page-header">
-        <h1 class="page-title">数据监控中心</h1>
-        <p class="page-subtitle">管理标签分组，查看历史数据趋势</p>
+        <div class="page-header-left">
+          <h1 class="page-title">数据监控中心</h1>
+          <p class="page-subtitle">管理标签分组，查看历史数据趋势</p>
+        </div>
+        <span class="page-version">v{{ APP_VERSION }}</span>
       </div>
       
       <!-- 系统状态卡片 -->
       <div class="status-section">
-        <NGrid :cols="4" :x-gap="16" :y-gap="16" responsive="screen" item-responsive>
-          <NGi span="0:24 600:12 900:6">
+        <NGrid :cols="3" :x-gap="16" :y-gap="16" responsive="screen" item-responsive>
+          <NGi span="0:24 600:12 900:8">
             <NCard class="stat-card glass-card" :bordered="false">
               <NStatistic label="数据库状态">
                 <template #prefix>
@@ -142,7 +145,7 @@ function formatTime(timestamp: string): string {
             </NCard>
           </NGi>
           
-          <NGi span="0:24 600:12 900:6">
+          <NGi span="0:24 600:12 900:8">
             <NCard class="stat-card glass-card" :bordered="false">
               <NStatistic label="分组数量" :value="groups.length">
                 <template #prefix>
@@ -152,26 +155,16 @@ function formatTime(timestamp: string): string {
             </NCard>
           </NGi>
           
-          <NGi span="0:24 600:12 900:6">
+          <NGi span="0:24 600:12 900:8">
             <NCard class="stat-card glass-card" :bordered="false">
-              <NStatistic label="监控标签" :value="groups.reduce((sum, g) => sum + g.tags.length, 0)">
+              <NStatistic label="总图表数" :value="groups.reduce((sum, g) => sum + (g.charts?.length || 0), 0)">
                 <template #prefix>
-                  <NIcon :component="PricetagsOutline" :size="20" />
+                  <NIcon :component="AnalyticsOutline" :size="20" />
                 </template>
               </NStatistic>
             </NCard>
           </NGi>
           
-          <NGi span="0:24 600:12 900:6">
-            <NCard class="stat-card glass-card" :bordered="false">
-              <NStatistic label="应用版本">
-                <template #prefix>
-                  <NIcon :component="TimeOutline" :size="20" />
-                </template>
-                <span class="version-text">v{{ appVersion }}</span>
-              </NStatistic>
-            </NCard>
-          </NGi>
         </NGrid>
       </div>
       
@@ -210,8 +203,12 @@ function formatTime(timestamp: string): string {
                   
                   <div class="group-info">
                     <div class="info-item">
+                      <NIcon :component="AnalyticsOutline" :size="14" />
+                      <span>{{ group.charts?.length || 0 }} 个图表</span>
+                    </div>
+                    <div class="info-item">
                       <NIcon :component="PricetagsOutline" :size="14" />
-                      <span>{{ group.tags.length }} 个标签</span>
+                      <span>{{ group.charts?.reduce((sum, c) => sum + c.tags.length, 0) || 0 }} 个标签</span>
                     </div>
                     <div class="info-item">
                       <NIcon :component="TimeOutline" :size="14" />
@@ -219,17 +216,18 @@ function formatTime(timestamp: string): string {
                     </div>
                   </div>
                   
-                  <div class="group-tags">
+                  <div class="group-charts">
                     <NTag 
-                      v-for="tag in group.tags.slice(0, 3)" 
-                      :key="tag" 
+                      v-for="chart in (group.charts || []).slice(0, 3)" 
+                      :key="chart.id" 
                       size="small"
                       round
+                      type="info"
                     >
-                      {{ tag }}
+                      {{ chart.name }}
                     </NTag>
-                    <NTag v-if="group.tags.length > 3" size="small" round type="info">
-                      +{{ group.tags.length - 3 }}
+                    <NTag v-if="(group.charts?.length || 0) > 3" size="small" round>
+                      +{{ (group.charts?.length || 0) - 3 }}
                     </NTag>
                   </div>
                 </div>
@@ -299,6 +297,23 @@ function formatTime(timestamp: string): string {
 
 .page-header {
   margin-bottom: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.page-header-left {
+  flex: 1;
+}
+
+.page-version {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--glass-bg);
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
 }
 
 .page-title {
@@ -333,10 +348,6 @@ function formatTime(timestamp: string): string {
   font-family: 'Consolas', monospace;
 }
 
-.version-text {
-  font-family: 'Consolas', monospace;
-  font-size: 16px;
-}
 
 .groups-section {
   flex: 1;
@@ -410,7 +421,7 @@ function formatTime(timestamp: string): string {
   color: var(--text-muted);
 }
 
-.group-tags {
+.group-charts {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;

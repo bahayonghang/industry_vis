@@ -119,12 +119,28 @@ export function createDefaultProcessingConfig(): DataProcessingConfig {
   }
 }
 
-// 标签分组
+// 图表配置（分组内的单个图表）
+export interface ChartConfig {
+  id: string
+  name: string
+  tags: string[]  // 最多 5 个标签
+}
+
+// 标签分组（包含多个图表）
 export interface TagGroup {
   id: string
   name: string
-  tags: string[]  // 最多 20 个
+  charts: ChartConfig[]  // 最多 10 个图表
   processingConfig: DataProcessingConfig
   createdAt: string
   updatedAt: string
+}
+
+// 创建默认图表配置
+export function createDefaultChartConfig(name: string = '新图表'): ChartConfig {
+  return {
+    id: `c${Date.now()}`,
+    name,
+    tags: []
+  }
 }

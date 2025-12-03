@@ -6,6 +6,9 @@ package-lock.json
 dist/
 target/
 
+# Auto-generated version file
+src/version.ts
+
 # IDE
 .vscode/
 .idea/

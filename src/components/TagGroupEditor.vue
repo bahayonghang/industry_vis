@@ -9,9 +9,10 @@ import {
   NSpace,
   useMessage 
 } from 'naive-ui'
-import TagSearchSelect from './TagSearchSelect.vue'
+// TagSearchSelect 已移至 GroupEditView
 import { useTagGroupStore } from '@/stores/tagGroup'
-import type { TagGroup } from '@/types'
+import type { ChartConfig, TagGroup } from '@/types'
+import { createDefaultChartConfig } from '@/types'
 
 const props = defineProps<{
   show: boolean
@@ -29,7 +30,7 @@ const message = useMessage()
 // 表单数据
 const formValue = ref({
   name: '',
-  tags: [] as string[]
+  charts: [] as ChartConfig[]
 })
 
 // 是否编辑模式
@@ -43,12 +44,12 @@ watch(() => props.editGroup, (group) => {
   if (group) {
     formValue.value = {
       name: group.name,
-      tags: [...group.tags]
+      charts: JSON.parse(JSON.stringify(group.charts || []))
     }
   } else {
     formValue.value = {
       name: '',
-      tags: []
+      charts: []
     }
   }
 }, { immediate: true })
@@ -58,7 +59,7 @@ watch(() => props.show, (show) => {
   if (!show && !props.editGroup) {
     formValue.value = {
       name: '',
-      tags: []
+      charts: []
     }
   }
 })
@@ -84,19 +85,20 @@ function validate(): boolean {
 async function handleSave() {
   if (!validate()) return
   
-  const { name, tags } = formValue.value
+  const { name, charts } = formValue.value
   
   let result: TagGroup | null = null
   
   if (isEditMode.value && props.editGroup) {
     // 更新
-    result = await tagGroupStore.updateGroup(props.editGroup.id, name, tags)
+    result = await tagGroupStore.updateGroup(props.editGroup.id, name, charts)
     if (result) {
       message.success('分组已更新')
     }
   } else {
-    // 创建
-    result = await tagGroupStore.createGroup(name, tags)
+    // 创建（自动创建默认图表）
+    const initialCharts = charts.length > 0 ? charts : [createDefaultChartConfig('默认图表')]
+    result = await tagGroupStore.createGroup(name, initialCharts)
     if (result) {
       message.success('分组已创建，点击编辑添加标签')
     }
@@ -130,16 +132,8 @@ async function handleSave() {
         />
       </NFormItem>
       
-      <!-- 编辑模式才显示标签选择 -->
-      <NFormItem v-if="isEditMode" label="选择标签">
-        <TagSearchSelect
-          v-model="formValue.tags"
-          :max-tags="20"
-        />
-      </NFormItem>
-      
-      <div v-else class="create-hint">
-        创建分组后，点击编辑按钮添加标签
+      <div class="create-hint">
+        {{ isEditMode ? '请在分组编辑页面管理图表和标签' : '创建分组后，点击编辑按钮添加图表和标签' }}
       </div>
     </NForm>
     

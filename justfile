@@ -31,11 +31,12 @@ help:
     @echo "  just docs-build 构建文档"
     @echo ""
     @echo "其他命令:"
-    @echo "  just install    安装所有依赖"
-    @echo "  just clean      清理构建产物"
-    @echo "  just kill-dev   终止残留的开发服务器进程"
-    @echo "  just fmt        格式化 Rust 代码"
-    @echo "  just update     更新所有依赖"
+    @echo "  just install      安装所有依赖"
+    @echo "  just sync-version 同步版本号 (package.json → Cargo.toml + tauri.conf.json)"
+    @echo "  just clean        清理构建产物"
+    @echo "  just kill-dev     终止残留的开发服务器进程"
+    @echo "  just fmt          格式化 Rust 代码"
+    @echo "  just update       更新所有依赖"
     @echo ""
 
 # 安装依赖
@@ -51,15 +52,19 @@ dev:
 dev-web:
     bun run dev
 
+# 同步版本号（从 package.json 同步到 Cargo.toml 和 tauri.conf.json）
+sync-version:
+    bun run sync-version
+
 # 快速构建便携版（日常开发测试用，只生成 exe）
-build:
+build: sync-version
     bun run build
     cd src-tauri && cargo build --release
     @echo ""
     @echo "构建完成: src-tauri/target/release/industry-vis.exe"
 
 # 构建安装包（正式发布用，生成 setup.exe）
-release:
+release: sync-version
     bun run tauri:build
     @echo ""
     @echo "安装包已生成: src-tauri/target/release/bundle/nsis/"

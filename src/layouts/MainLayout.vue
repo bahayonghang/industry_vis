@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, h, provide } from 'vue'
+import { ref, computed, h, provide, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { 
   NLayout, 
@@ -12,7 +12,8 @@ import {
   NButton,
   NTooltip,
   NDivider,
-  NDropdown
+  NDropdown,
+  NModal
 } from 'naive-ui'
 import { 
   HomeOutline, 
@@ -23,13 +24,15 @@ import {
   DesktopOutline,
   ChevronBackOutline,
   ChevronForwardOutline,
-  EllipsisVertical
+  EllipsisVertical,
+  InformationCircleOutline
 } from '@vicons/ionicons5'
 import type { MenuOption, DropdownOption } from 'naive-ui'
 import { useThemeStore } from '@/stores/theme'
 import { useConfigStore } from '@/stores/config'
 import TagGroupTree from '@/components/TagGroupTree.vue'
 import GroupEditView from '@/components/GroupEditView.vue'
+import { getVersion } from '@tauri-apps/api/app'
 
 const router = useRouter()
 const route = useRoute()
@@ -38,6 +41,16 @@ const configStore = useConfigStore()
 
 // 侧边栏折叠状态
 const collapsed = ref(false)
+
+// 应用版本号
+const appVersion = ref('')
+onMounted(async () => {
+  try {
+    appVersion.value = await getVersion()
+  } catch {
+    appVersion.value = '0.0.0'
+  }
+})
 
 // 编辑分组状态
 const editingGroupId = ref<string | null>(null)
@@ -96,6 +109,20 @@ const themeOptions: DropdownOption[] = [
 
 const handleThemeSelect = (key: string) => {
   themeStore.setMode(key as 'light' | 'dark' | 'system')
+}
+
+// 关于弹窗
+const showAboutModal = ref(false)
+
+// 更多操作下拉菜单
+const moreOptions: DropdownOption[] = [
+  { label: '关于', key: 'about', icon: () => h(NIcon, null, { default: () => h(InformationCircleOutline) }) },
+]
+
+const handleMoreSelect = (key: string) => {
+  if (key === 'about') {
+    showAboutModal.value = true
+  }
 }
 </script>
 
@@ -188,11 +215,17 @@ const handleThemeSelect = (key: string) => {
           </NTooltip>
           
           <!-- 更多操作 -->
-          <NButton quaternary circle>
-            <template #icon>
-              <NIcon :component="EllipsisVertical" />
-            </template>
-          </NButton>
+          <NDropdown 
+            :options="moreOptions" 
+            @select="handleMoreSelect"
+            placement="bottom-end"
+          >
+            <NButton quaternary circle>
+              <template #icon>
+                <NIcon :component="EllipsisVertical" />
+              </template>
+            </NButton>
+          </NDropdown>
         </NSpace>
       </NLayoutHeader>
       
@@ -209,6 +242,21 @@ const handleThemeSelect = (key: string) => {
         <slot v-else />
       </NLayoutContent>
     </NLayout>
+    
+    <!-- 关于弹窗 -->
+    <NModal v-model:show="showAboutModal" preset="card" title="关于" style="width: 400px; max-width: 90vw">
+      <div class="about-content">
+        <div class="about-logo">
+          <NIcon size="48" :color="themeStore.isDark ? '#60a5fa' : '#3b82f6'">
+            <ServerOutline />
+          </NIcon>
+        </div>
+        <h2 class="about-title">工业数据可视化</h2>
+        <p class="about-version">v{{ appVersion }}</p>
+        <p class="about-desc">工业时序数据查询与可视化分析工具</p>
+        <div class="about-copyright">© 2025 Bahayonghang. All rights reserved.</div>
+      </div>
+    </NModal>
   </NLayout>
 </template>
 
@@ -280,6 +328,54 @@ const handleThemeSelect = (key: string) => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* 关于弹窗 */
+.about-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.about-logo {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+  margin-bottom: 16px;
+}
+
+.about-title {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.about-version {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--industrial-blue);
+  font-weight: 500;
+}
+
+.about-desc {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.about-copyright {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+  width: 100%;
 }
 
 .tag-group-section :deep(.tag-group-tree) {

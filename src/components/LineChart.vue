@@ -72,9 +72,9 @@ const chartOption = computed(() => {
     series = dataStore.chartSeries.map((s: ChartSeriesData) => ({
       name: s.tagName,
       type: 'line',
-      smooth: true,
+      smooth: 0.3,  // 较小的平滑系数，更贴合真实数据
       showSymbol: false,
-      symbolSize: 6,
+      symbolSize: 4,
       // 大数据优化配置
       sampling: 'lttb',           // Largest-Triangle-Three-Buckets 降采样
       large: true,                // 启用大数据优化
@@ -82,15 +82,15 @@ const chartOption = computed(() => {
       progressive: 5000,          // 渐进渲染
       progressiveThreshold: 3000, // 超过 3000 点启用渐进渲染
       lineStyle: {
-        width: 2,
+        width: 1.5,
       },
       areaStyle: {
-        opacity: 0.1,
+        opacity: 0.05,
       },
       emphasis: {
         focus: 'series',
         lineStyle: {
-          width: 3,
+          width: 2.5,
         },
       },
       data: s.data,  // [[timestamp_ms, value], ...]
@@ -113,22 +113,22 @@ const chartOption = computed(() => {
     series = Object.entries(seriesData).map(([tagName, data]) => ({
       name: tagName,
       type: 'line',
-      smooth: true,
+      smooth: 0.3,
       showSymbol: false,
-      symbolSize: 6,
+      symbolSize: 4,
       sampling: 'lttb',
       large: true,
       largeThreshold: 2000,
       lineStyle: {
-        width: 2,
+        width: 1.5,
       },
       areaStyle: {
-        opacity: 0.1,
+        opacity: 0.05,
       },
       emphasis: {
         focus: 'series',
         lineStyle: {
-          width: 3,
+          width: 2.5,
         },
       },
       data: data.map(d => [d.time, d.value]),
@@ -179,7 +179,7 @@ const chartOption = computed(() => {
       left: '3%',
       right: '4%',
       top: '8%',
-      bottom: '18%',
+      bottom: '12%',
       containLabel: true,
     },
     xAxis: {
@@ -193,14 +193,20 @@ const chartOption = computed(() => {
         color: textColor,
         formatter: (value: number) => {
           const date = new Date(value)
-          return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+          const month = (date.getMonth() + 1).toString().padStart(2, '0')
+          const day = date.getDate().toString().padStart(2, '0')
+          const hours = date.getHours().toString().padStart(2, '0')
+          const minutes = date.getMinutes().toString().padStart(2, '0')
+          return `${month}-${day}\n${hours}:${minutes}`
         },
+        lineHeight: 16,
       },
       splitLine: {
         show: true,
         lineStyle: {
           color: borderColor,
           type: 'dashed',
+          opacity: 0.5,
         },
       },
     },
@@ -227,31 +233,6 @@ const chartOption = computed(() => {
         end: 100,
         zoomOnMouseWheel: true,
         moveOnMouseMove: true,
-      },
-      { 
-        type: 'slider', 
-        start: 0, 
-        end: 100,
-        height: 24,
-        bottom: 36,
-        borderColor: borderColor,
-        backgroundColor: isDark ? 'rgba(30, 41, 59, 0.5)' : 'rgba(241, 245, 249, 0.8)',
-        fillerColor: isDark ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)',
-        handleStyle: {
-          color: '#3b82f6',
-          borderColor: '#3b82f6',
-        },
-        textStyle: {
-          color: textColor,
-        },
-        dataBackground: {
-          lineStyle: {
-            color: borderColor,
-          },
-          areaStyle: {
-            color: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
-          },
-        },
       },
     ],
     toolbox: {

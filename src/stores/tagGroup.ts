@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import type { DataProcessingConfig, TagGroup } from '@/types'
+import type { ChartConfig, DataProcessingConfig, TagGroup } from '@/types'
+import { createDefaultChartConfig } from '@/types'
 
 export const useTagGroupStore = defineStore('tagGroup', () => {
   // 状态
@@ -62,12 +63,14 @@ export const useTagGroupStore = defineStore('tagGroup', () => {
   }
 
   // 创建分组
-  async function createGroup(name: string, tags: string[]): Promise<TagGroup | null> {
+  async function createGroup(name: string, charts: ChartConfig[] = []): Promise<TagGroup | null> {
     loading.value = true
     error.value = null
     
     try {
-      const newGroup = await invoke<TagGroup>('create_tag_group', { name, tags })
+      // 如果没有图表，创建一个默认图表
+      const chartsToCreate = charts.length > 0 ? charts : [createDefaultChartConfig('默认图表')]
+      const newGroup = await invoke<TagGroup>('create_tag_group', { name, charts: chartsToCreate })
       groups.value.push(newGroup)
       return newGroup
     } catch (e) {
@@ -83,7 +86,7 @@ export const useTagGroupStore = defineStore('tagGroup', () => {
   async function updateGroup(
     id: string, 
     name: string, 
-    tags: string[],
+    charts: ChartConfig[],
     processingConfig?: DataProcessingConfig
   ): Promise<TagGroup | null> {
     loading.value = true
@@ -93,7 +96,7 @@ export const useTagGroupStore = defineStore('tagGroup', () => {
       const updated = await invoke<TagGroup>('update_tag_group', { 
         id, 
         name, 
-        tags,
+        charts,
         processingConfig: processingConfig || null,
       })
       const idx = groups.value.findIndex(g => g.id === id)
@@ -108,6 +111,82 @@ export const useTagGroupStore = defineStore('tagGroup', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  // === 图表管理辅助方法 ===
+  
+  // 添加图表到分组
+  function addChartToGroup(groupId: string, chartName: string = '新图表'): ChartConfig | null {
+    const group = groups.value.find(g => g.id === groupId)
+    if (!group) return null
+    if (group.charts.length >= 10) return null
+    
+    const newChart = createDefaultChartConfig(chartName)
+    group.charts.push(newChart)
+    return newChart
+  }
+  
+  // 从分组移除图表
+  function removeChartFromGroup(groupId: string, chartId: string): boolean {
+    const group = groups.value.find(g => g.id === groupId)
+    if (!group) return false
+    
+    const idx = group.charts.findIndex(c => c.id === chartId)
+    if (idx === -1) return false
+    
+    group.charts.splice(idx, 1)
+    return true
+  }
+  
+  // 更新图表
+  function updateChart(groupId: string, chartId: string, updates: Partial<ChartConfig>): boolean {
+    const group = groups.value.find(g => g.id === groupId)
+    if (!group) return false
+    
+    const chart = group.charts.find(c => c.id === chartId)
+    if (!chart) return false
+    
+    if (updates.name !== undefined) chart.name = updates.name
+    if (updates.tags !== undefined) chart.tags = updates.tags
+    return true
+  }
+  
+  // 添加标签到图表
+  function addTagToChart(groupId: string, chartId: string, tagName: string): boolean {
+    const group = groups.value.find(g => g.id === groupId)
+    if (!group) return false
+    
+    const chart = group.charts.find(c => c.id === chartId)
+    if (!chart) return false
+    if (chart.tags.length >= 5) return false
+    if (chart.tags.includes(tagName)) return false
+    
+    chart.tags.push(tagName)
+    return true
+  }
+  
+  // 从图表移除标签
+  function removeTagFromChart(groupId: string, chartId: string, tagName: string): boolean {
+    const group = groups.value.find(g => g.id === groupId)
+    if (!group) return false
+    
+    const chart = group.charts.find(c => c.id === chartId)
+    if (!chart) return false
+    
+    const idx = chart.tags.indexOf(tagName)
+    if (idx === -1) return false
+    
+    chart.tags.splice(idx, 1)
+    return true
+  }
+  
+  // 获取分组中所有标签（去重）
+  function getAllTagsInGroup(groupId: string): string[] {
+    const group = groups.value.find(g => g.id === groupId)
+    if (!group) return []
+    
+    const allTags = group.charts.flatMap(c => c.tags)
+    return [...new Set(allTags)].sort()
   }
 
   // 删除分组
@@ -154,14 +233,23 @@ export const useTagGroupStore = defineStore('tagGroup', () => {
     // 计算属性
     selectedGroup,
     groupCount,
-    // 方法
+    // 分组 CRUD
     loadGroups,
-    searchTags,
-    clearSearchResults,
     createGroup,
     updateGroup,
     deleteGroup,
     selectGroup,
     getGroup,
+    // 搜索
+    searchTags,
+    clearSearchResults,
+    // 图表管理
+    addChartToGroup,
+    removeChartFromGroup,
+    updateChart,
+    // 标签管理
+    addTagToChart,
+    removeTagFromChart,
+    getAllTagsInGroup,
   }
 })

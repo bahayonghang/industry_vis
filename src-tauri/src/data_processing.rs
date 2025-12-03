@@ -95,6 +95,8 @@ fn remove_outliers(records: Vec<HistoryRecord>) -> AppResult<Vec<HistoryRecord>>
 /// 时间序列重采样（均值聚合）
 /// interval: 重采样间隔（秒）
 fn resample_data(records: Vec<HistoryRecord>, interval: u32) -> AppResult<Vec<HistoryRecord>> {
+    use chrono::{Local, TimeZone};
+    
     if records.is_empty() {
         return Ok(records);
     }
@@ -104,15 +106,19 @@ fn resample_data(records: Vec<HistoryRecord>, interval: u32) -> AppResult<Vec<Hi
     let mut windows: HashMap<i64, Vec<&HistoryRecord>> = HashMap::new();
 
     for record in &records {
-        // 解析 ISO 时间字符串
+        // 解析 ISO 时间字符串（本地时间）
         if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(&record.date_time, "%Y-%m-%dT%H:%M:%S%.3f") {
-            let timestamp_ms = dt.and_utc().timestamp_millis();
-            let window_key = (timestamp_ms / interval_ms) * interval_ms;
-            windows.entry(window_key).or_default().push(record);
+            if let Some(local_dt) = Local.from_local_datetime(&dt).single() {
+                let timestamp_ms = local_dt.timestamp_millis();
+                let window_key = (timestamp_ms / interval_ms) * interval_ms;
+                windows.entry(window_key).or_default().push(record);
+            }
         } else if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(&record.date_time, "%Y-%m-%dT%H:%M:%S") {
-            let timestamp_ms = dt.and_utc().timestamp_millis();
-            let window_key = (timestamp_ms / interval_ms) * interval_ms;
-            windows.entry(window_key).or_default().push(record);
+            if let Some(local_dt) = Local.from_local_datetime(&dt).single() {
+                let timestamp_ms = local_dt.timestamp_millis();
+                let window_key = (timestamp_ms / interval_ms) * interval_ms;
+                windows.entry(window_key).or_default().push(record);
+            }
         }
     }
 
@@ -123,10 +129,10 @@ fn resample_data(records: Vec<HistoryRecord>, interval: u32) -> AppResult<Vec<Hi
             let avg_val = window_records.iter().map(|r| r.tag_val).sum::<f64>() 
                 / window_records.len() as f64;
             
-            // 使用窗口开始时间作为时间戳
+            // 使用窗口开始时间作为时间戳，转换回本地时间字符串
             let dt = chrono::DateTime::from_timestamp_millis(window_key)
-                .unwrap_or_default()
-                .naive_utc();
+                .map(|utc| utc.with_timezone(&Local).naive_local())
+                .unwrap_or_default();
             
             HistoryRecord {
                 date_time: dt.format("%Y-%m-%dT%H:%M:%S%.3f").to_string(),
@@ -281,13 +287,23 @@ pub fn records_to_series(records: &[HistoryRecord]) -> Vec<ChartSeriesData> {
 }
 
 /// 解析时间字符串为毫秒时间戳
+/// 
+/// 注意：输入的时间字符串是本地时间（数据库存储的是本地时间），
+/// 需要正确转换为 UTC 时间戳以便前端显示。
 fn parse_timestamp_ms(date_time: &str) -> Option<f64> {
+    use chrono::{Local, TimeZone};
+    
     // 尝试多种格式
     if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(date_time, "%Y-%m-%dT%H:%M:%S%.3f") {
-        return Some(dt.and_utc().timestamp_millis() as f64);
+        // 将本地时间转换为带时区的时间，然后获取 UTC 时间戳
+        if let Some(local_dt) = Local.from_local_datetime(&dt).single() {
+            return Some(local_dt.timestamp_millis() as f64);
+        }
     }
     if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(date_time, "%Y-%m-%dT%H:%M:%S") {
-        return Some(dt.and_utc().timestamp_millis() as f64);
+        if let Some(local_dt) = Local.from_local_datetime(&dt).single() {
+            return Some(local_dt.timestamp_millis() as f64);
+        }
     }
     None
 }
@@ -359,9 +375,10 @@ pub fn dataframe_to_records(df: &DataFrame) -> AppResult<Vec<HistoryRecord>> {
     
     for i in 0..df.height() {
         let ts_ms = datetimes.get(i).unwrap_or(0);
+        // 将 UTC 时间戳转换回本地时间字符串
         let dt = chrono::DateTime::from_timestamp_millis(ts_ms)
-            .unwrap_or_default()
-            .naive_utc();
+            .map(|utc| utc.with_timezone(&chrono::Local).naive_local())
+            .unwrap_or_default();
         
         records.push(HistoryRecord {
             date_time: dt.format("%Y-%m-%dT%H:%M:%S%.3f").to_string(),

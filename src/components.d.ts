@@ -7,10 +7,12 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ChartCard: typeof import('./components/ChartCard.vue')['default']
     ConnectionSettings: typeof import('./components/ConnectionSettings.vue')['default']
     GroupEditView: typeof import('./components/GroupEditView.vue')['default']
     LineChart: typeof import('./components/LineChart.vue')['default']
     NH2: typeof import('naive-ui')['NH2']
+    NTag: typeof import('naive-ui')['NTag']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TagGroupEditor: typeof import('./components/TagGroupEditor.vue')['default']

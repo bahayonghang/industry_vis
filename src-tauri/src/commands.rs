@@ -10,7 +10,7 @@ use crate::data_processing;
 use crate::datasource::{DataSource, SqlServerSource};
 use crate::error::AppResult;
 use crate::models::{ConnectionTestResult, DataProcessingConfig, HistoryRecord, QueryParams, QueryResult, QueryResultV2};
-use crate::tag_group::{TagGroup, TagGroupConfig};
+use crate::tag_group::{ChartConfig, TagGroup, TagGroupConfig};
 
 /// 加载配置
 #[tauri::command]
@@ -322,10 +322,10 @@ pub async fn list_tag_groups() -> AppResult<Vec<TagGroup>> {
 
 /// 创建标签分组
 #[tauri::command]
-pub async fn create_tag_group(name: String, tags: Vec<String>) -> AppResult<TagGroup> {
-    info!(target: "industry_vis_lib::commands", "创建分组 - 名称: {}, 标签数: {}", name, tags.len());
+pub async fn create_tag_group(name: String, charts: Vec<ChartConfig>) -> AppResult<TagGroup> {
+    info!(target: "industry_vis_lib::commands", "创建分组 - 名称: {}, 图表数: {}", name, charts.len());
     let mut config = TagGroupConfig::load()?;
-    config.create_group(name, tags)
+    config.create_group(name, charts)
 }
 
 /// 更新标签分组
@@ -333,12 +333,12 @@ pub async fn create_tag_group(name: String, tags: Vec<String>) -> AppResult<TagG
 pub async fn update_tag_group(
     id: String, 
     name: String, 
-    tags: Vec<String>,
+    charts: Vec<ChartConfig>,
     processing_config: Option<DataProcessingConfig>,
 ) -> AppResult<TagGroup> {
-    info!(target: "industry_vis_lib::commands", "更新分组 - ID: {}, 名称: {}", id, name);
+    info!(target: "industry_vis_lib::commands", "更新分组 - ID: {}, 名称: {}, 图表数: {}", id, name, charts.len());
     let mut config = TagGroupConfig::load()?;
-    config.update_group(&id, name, tags, processing_config)
+    config.update_group(&id, name, charts, processing_config)
 }
 
 /// 删除标签分组

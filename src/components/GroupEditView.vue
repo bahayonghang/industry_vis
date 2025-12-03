@@ -4,7 +4,6 @@ import {
   NButton, 
   NIcon, 
   NInput, 
-  NTag, 
   NSpace, 
   NTooltip,
   NButtonGroup,
@@ -30,9 +29,10 @@ import {
 import { useTagGroupStore } from '@/stores/tagGroup'
 import { useDataStore } from '@/stores/data'
 import LineChart from '@/components/LineChart.vue'
+import ChartCard from '@/components/ChartCard.vue'
 import TagSearchModal from '@/components/TagSearchModal.vue'
-import type { DataProcessingConfig, TagGroup } from '@/types'
-import { createDefaultProcessingConfig } from '@/types'
+import type { ChartConfig, DataProcessingConfig, TagGroup } from '@/types'
+import { createDefaultProcessingConfig, createDefaultChartConfig } from '@/types'
 
 const props = defineProps<{
   groupId: string
@@ -51,18 +51,22 @@ const dialog = useDialog()
 
 // 编辑状态
 const groupName = ref('')
-const selectedTags = ref<string[]>([])
+const charts = ref<ChartConfig[]>([])
 const hasChanges = ref(false)
 const saving = ref(false)
 const showTagModal = ref(false)
+const activeChartId = ref<string | null>(null)  // 当前添加标签的图表
 
 // 数据处理配置
 const processingConfig = ref<DataProcessingConfig>(createDefaultProcessingConfig())
 
 // 原始数据（用于检测变更）
 const originalName = ref('')
-const originalTags = ref<string[]>([])
+const originalCharts = ref<ChartConfig[]>([])
 const originalProcessingConfig = ref<DataProcessingConfig>(createDefaultProcessingConfig())
+
+// 图表数量限制
+const canAddChart = computed(() => charts.value.length < 10)
 
 // 时间选择
 type PresetKey = 'realtime' | '1h' | 'shift' | 'today' | 'yesterday' | 'week' | 'custom'
@@ -78,10 +82,14 @@ const selectedPreset = ref<PresetKey>('today')
 const customRange = ref<[number, number] | null>(null)
 const showCustomPicker = ref(false)
 
-// 是否达到标签上限
-const isMaxReached = computed(() => selectedTags.value.length >= 20)
+// 计算属性
 const loading = computed(() => dataStore.loading)
 const hasData = computed(() => dataStore.records.length > 0 || dataStore.chartSeries.length > 0)
+const allTags = computed(() => {
+  // 获取所有图表中的标签（去重）
+  const tags = charts.value.flatMap(c => c.tags)
+  return [...new Set(tags)]
+})
 
 // 缓存状态
 const cacheHit = computed(() => dataStore.cacheHit)
@@ -89,10 +97,10 @@ const queryTimeMs = computed(() => dataStore.queryTimeMs)
 const totalProcessed = computed(() => dataStore.totalProcessed)
 
 // 检测是否有变更
-watch([groupName, selectedTags, processingConfig], () => {
+watch([groupName, charts, processingConfig], () => {
   hasChanges.value = 
     groupName.value !== originalName.value ||
-    JSON.stringify([...selectedTags.value].sort()) !== JSON.stringify([...originalTags.value].sort()) ||
+    JSON.stringify(charts.value) !== JSON.stringify(originalCharts.value) ||
     JSON.stringify(processingConfig.value) !== JSON.stringify(originalProcessingConfig.value)
 }, { deep: true })
 
@@ -109,9 +117,10 @@ function loadGroupData() {
   const group = tagGroupStore.getGroup(props.groupId)
   if (group) {
     groupName.value = group.name
-    selectedTags.value = [...group.tags]
+    // 深拷贝 charts
+    charts.value = JSON.parse(JSON.stringify(group.charts || []))
     originalName.value = group.name
-    originalTags.value = [...group.tags]
+    originalCharts.value = JSON.parse(JSON.stringify(group.charts || []))
     
     // 加载处理配置
     if (group.processingConfig) {
@@ -125,8 +134,8 @@ function loadGroupData() {
     hasChanges.value = false
     
     // 设置标签并查询数据
-    if (group.tags.length > 0) {
-      dataStore.setSelectedTags(group.tags)
+    if (allTags.value.length > 0) {
+      dataStore.setSelectedTags(allTags.value)
       const [start, end] = getPresetRange('today')
       dataStore.setTimeRange(start, end)
       // 使用 V2 接口获取预分组数据
@@ -192,11 +201,11 @@ function handleCustomRangeChange(range: [number, number] | null) {
 }
 
 function handleQuery(forceRefresh = false) {
-  if (selectedTags.value.length === 0) {
+  if (allTags.value.length === 0) {
     message.warning('请先添加标签')
     return
   }
-  dataStore.setSelectedTags(selectedTags.value)
+  dataStore.setSelectedTags(allTags.value)
   // 使用 V2 接口获取预分组数据
   dataStore.fetchDataV2(processingConfig.value, forceRefresh)
 }
@@ -205,22 +214,60 @@ function handleForceRefresh() {
   handleQuery(true)
 }
 
-// 标签操作
-function handleAddTag(tag: string) {
-  if (isMaxReached.value) {
-    message.warning('每个分组最多包含 20 个标签')
+// === 图表操作 ===
+
+// 添加新图表
+function handleAddChart() {
+  if (!canAddChart.value) {
+    message.warning('每个分组最多包含 10 个图表')
     return
   }
-  if (!selectedTags.value.includes(tag)) {
-    selectedTags.value.push(tag)
-    // 更新数据
-    dataStore.setSelectedTags(selectedTags.value)
+  const newChart = createDefaultChartConfig(`图表 ${charts.value.length + 1}`)
+  charts.value.push(newChart)
+}
+
+// 删除图表
+function handleDeleteChart(chartId: string) {
+  charts.value = charts.value.filter(c => c.id !== chartId)
+}
+
+// 更新图表名称
+function handleUpdateChartName(chartId: string, name: string) {
+  const chart = charts.value.find(c => c.id === chartId)
+  if (chart) {
+    chart.name = name
   }
 }
 
-function removeTag(tag: string) {
-  selectedTags.value = selectedTags.value.filter(t => t !== tag)
-  dataStore.setSelectedTags(selectedTags.value)
+// 打开标签选择弹窗
+function handleOpenTagModal(chartId: string) {
+  activeChartId.value = chartId
+  showTagModal.value = true
+}
+
+// 添加标签到指定图表
+function handleAddTag(tag: string) {
+  if (!activeChartId.value) return
+  
+  const chart = charts.value.find(c => c.id === activeChartId.value)
+  if (!chart) return
+  
+  if (chart.tags.length >= 5) {
+    message.warning('每个图表最多包含 5 个标签')
+    return
+  }
+  
+  if (!chart.tags.includes(tag)) {
+    chart.tags.push(tag)
+  }
+}
+
+// 从图表移除标签
+function handleRemoveTag(chartId: string, tagName: string) {
+  const chart = charts.value.find(c => c.id === chartId)
+  if (chart) {
+    chart.tags = chart.tags.filter(t => t !== tagName)
+  }
 }
 
 // 返回（检查未保存变更）
@@ -253,14 +300,14 @@ async function handleSave() {
     const result = await tagGroupStore.updateGroup(
       props.groupId,
       groupName.value.trim(),
-      selectedTags.value,
+      charts.value,
       processingConfig.value
     )
     
     if (result) {
       message.success('分组已保存')
       originalName.value = result.name
-      originalTags.value = [...result.tags]
+      originalCharts.value = JSON.parse(JSON.stringify(result.charts))
       originalProcessingConfig.value = JSON.parse(JSON.stringify(processingConfig.value))
       hasChanges.value = false
       emit('saved', result)
@@ -382,7 +429,7 @@ async function handleDelete() {
           type="primary" 
           size="small"
           :loading="loading"
-          :disabled="selectedTags.length === 0"
+          :disabled="allTags.length === 0"
           @click="() => handleQuery(false)"
         >
           <template #icon>
@@ -397,7 +444,7 @@ async function handleDelete() {
               size="small" 
               tertiary
               :loading="loading"
-              :disabled="selectedTags.length === 0"
+              :disabled="allTags.length === 0"
               @click="handleForceRefresh"
             >
               <template #icon>
@@ -429,41 +476,41 @@ async function handleDelete() {
       </div>
     </div>
     
-    <!-- 标签管理条 -->
-    <div class="tags-bar glass">
-      <div class="tags-label">
-        <span>标签</span>
-        <span class="tag-count" :class="{ warning: isMaxReached }">
-          {{ selectedTags.length }}/20
-        </span>
+    <!-- 图表管理区域 -->
+    <div class="charts-section">
+      <div class="charts-header">
+        <div class="charts-title">
+          <span>图表配置</span>
+          <span class="chart-count" :class="{ warning: !canAddChart }">
+            {{ charts.length }}/10
+          </span>
+        </div>
       </div>
       
-      <div class="tags-list">
-        <NSpace :size="[8, 8]" align="center">
-          <NTag
-            v-for="tag in selectedTags"
-            :key="tag"
-            closable
-            round
-            type="info"
-            size="medium"
-            @close="removeTag(tag)"
-          >
-            {{ tag }}
-          </NTag>
-          
-          <NButton 
-            size="small" 
-            dashed 
-            :disabled="isMaxReached"
-            @click="showTagModal = true"
-          >
-            <template #icon>
-              <NIcon :component="AddOutline" />
-            </template>
-            添加标签
-          </NButton>
-        </NSpace>
+      <div class="charts-grid">
+        <ChartCard
+          v-for="(chart, index) in charts"
+          :key="chart.id"
+          :chart="chart"
+          :index="index"
+          :can-delete="charts.length > 1"
+          @update:name="(name) => handleUpdateChartName(chart.id, name)"
+          @delete="handleDeleteChart(chart.id)"
+          @add-tag="handleOpenTagModal(chart.id)"
+          @remove-tag="(tag) => handleRemoveTag(chart.id, tag)"
+        />
+        
+        <!-- 添加图表卡片 -->
+        <div 
+          v-if="canAddChart" 
+          class="add-chart-btn"
+          @click="handleAddChart"
+        >
+          <div class="add-chart-btn-icon">
+            <NIcon :component="AddOutline" size="24" />
+          </div>
+          <span class="add-chart-btn-text">添加图表</span>
+        </div>
       </div>
     </div>
     
@@ -524,7 +571,7 @@ async function handleDelete() {
       <div v-else class="empty-chart">
         <div class="empty-content">
           <NIcon :component="TimeOutline" :size="48" class="empty-icon" />
-          <p v-if="selectedTags.length === 0">请添加标签后查询数据</p>
+          <p v-if="allTags.length === 0">请添加标签后查询数据</p>
           <p v-else>选择时间范围并点击查询</p>
         </div>
       </div>
@@ -533,8 +580,8 @@ async function handleDelete() {
     <!-- 标签搜索弹窗 -->
     <TagSearchModal
       v-model:show="showTagModal"
-      :selected-tags="selectedTags"
-      :max-tags="20"
+      :selected-tags="activeChartId ? (charts.find(c => c.id === activeChartId)?.tags || []) : []"
+      :max-tags="5"
       @add="handleAddTag"
     />
   </div>
@@ -594,36 +641,101 @@ async function handleDelete() {
   color: var(--text-muted);
 }
 
-.tags-bar {
+/* 图表管理区域 */
+.charts-section {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 12px 16px;
-  border-radius: var(--radius-lg);
+  flex-direction: column;
+  gap: 12px;
 }
 
-.tags-label {
+.charts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.charts-title {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  padding-top: 4px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-.tag-count {
+.chart-count {
   font-weight: normal;
+  font-size: 12px;
   color: var(--text-muted);
+  padding: 2px 8px;
+  background: var(--glass-bg);
+  border-radius: 10px;
 }
 
-.tag-count.warning {
-  color: #f59e0b;
+.chart-count.warning {
+  color: var(--industrial-orange);
 }
 
-.tags-list {
-  flex: 1;
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 添加图表按钮 */
+.add-chart-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 180px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 2px dashed var(--glass-border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  color: var(--text-tertiary);
+}
+
+.add-chart-btn:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--industrial-blue);
+  color: var(--industrial-blue);
+  transform: translateY(-2px);
+}
+
+.add-chart-btn-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  transition: all var(--transition-normal);
+}
+
+.add-chart-btn:hover .add-chart-btn-icon {
+  background: var(--industrial-blue);
+  border-color: var(--industrial-blue);
+  color: white;
+  transform: scale(1.1);
+}
+
+.add-chart-btn-text {
+  font-size: 14px;
+  font-weight: 500;
 }
 
 /* 数据处理面板 */
