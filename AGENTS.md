@@ -24,22 +24,22 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 - `src-tauri/src/`: Rust backend for Tauri. Key modules include `commands.rs` (IPC entrypoints), `config.rs` (app config), `data_processing.rs` (Polars-based transforms), and `datasource/` for SQL Server access.
 - `docs/`: VitePress documentation; serves the contributor and user docs site.
 - `dist/`: Frontend build output; Tauri release artifacts land in `src-tauri/target/**`.
-- `justfile`: Shortcut commands mirroring npm/cargo workflows; see below for the common ones.
+- `justfile`: Shortcut commands mirroring bun/cargo workflows; see below for the common ones.
 
 ## Build, Test, and Development Commands
-- Frontend dev only: `npm run dev` (Vite dev server at localhost:5173).
-- Full app dev: `npm run tauri:dev` or `just dev` (starts Vite + Tauri shell).
-- Build frontend bundle: `npm run build`.
-- Build desktop app: `npm run tauri:build` or `just release` (produces NSIS installer under `src-tauri/target/release/bundle/nsis/`).
-- Lint TypeScript/Vue: `npm run lint`.
-- Unit tests: `npm run test` (Vitest).
-- E2E tests: `npm run test:e2e` (Playwright; ensure browsers installed via `npx playwright install` if missing).
+- Frontend dev only: `bun run dev` (Vite dev server at localhost:5173).
+- Full app dev: `bun run tauri:dev` or `just dev` (starts Vite + Tauri shell).
+- Build frontend bundle: `bun run build`.
+- Build desktop app: `bun run tauri:build` or `just release` (produces NSIS installer under `src-tauri/target/release/bundle/nsis/`).
+- Lint TypeScript/Vue: `bun run lint`.
+- Unit tests: `bun run test` (Vitest).
+- E2E tests: `bun run test:e2e` (Playwright; ensure browsers installed via `bunx playwright install` if missing).
 - Rust checks: `cd src-tauri && cargo test` (or `just test-rust`), `cargo check`, `cargo fmt`.
 
 ## Coding Style & Naming Conventions
 - TypeScript + Vue SFCs with `<script setup>`; prefer composition API and strongly typed props/emits.
 - Components/files: PascalCase (`LineChart.vue`), composables `useXxx.ts`, stores `useXxxStore.ts`, utility modules kebab-case where appropriate.
-- Indentation: 2 spaces; keep imports sorted and unused code removed. Run `npm run lint -- --fix` for TS/Vue and `cargo fmt` for Rust.
+- Indentation: 2 spaces; keep imports sorted and unused code removed. Run `bun run lint -- --fix` for TS/Vue and `cargo fmt` for Rust.
 - Favor small, pure functions; avoid duplicating data transforms between frontend and Rust—centralize logic in `data_processing.rs` or shared utilities.
 
 ## Testing Guidelines
@@ -51,10 +51,10 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 ## Commit & Pull Request Guidelines
 - Follow Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`); keep subject to 72 chars and in English where possible.
 - One logical change per commit; include tests/doc updates alongside code changes.
-- PRs should describe purpose, key changes, test evidence (`npm run test`, `cargo test`, `npm run test:e2e` when relevant), and screenshots for UI-impacting work.
+- PRs should describe purpose, key changes, test evidence (`bun run test`, `cargo test`, `bun run test:e2e` when relevant), and screenshots for UI-impacting work.
 - Link related issues; note any config or migration steps (e.g., `config.toml` changes, new env vars).
 
 ## Security & Configuration Tips
 - Do not commit real connection strings or credentials. Use `config.example.toml` as a template and keep per-machine configs local.
 - Ensure SQL queries remain parameterized in `datasource/`; avoid string interpolation with user input.
-- Before publishing builds, verify artifacts come from clean `npm run build` + `cargo build --release` outputs and that Playwright tests pass on the release binary.
+- Before publishing builds, verify artifacts come from clean `bun run build` + `cargo build --release` outputs and that Playwright tests pass on the release binary.

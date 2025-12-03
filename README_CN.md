@@ -41,7 +41,7 @@
 
 ### 环境要求
 
-- Node.js >= 18
+- [Bun](https://bun.sh) >= 1.0 (或 Node.js >= 18)
 - Rust >= 1.70
 - Windows 10/11 (WebView2)
 - [Just](https://github.com/casey/just) (可选，命令简化)
@@ -49,7 +49,7 @@
 ### 安装依赖
 
 ```bash
-npm install
+bun install
 ```
 
 ### 开发模式
@@ -58,8 +58,8 @@ npm install
 # 使用 just
 just dev
 
-# 或直接使用 npm
-npm run tauri:dev
+# 或直接使用 bun
+bun run tauri:dev
 ```
 
 ### 构建

@@ -41,7 +41,7 @@ A Tauri-based industrial data visualization system for reading, processing, and 
 
 ### Requirements
 
-- Node.js >= 18
+- [Bun](https://bun.sh) >= 1.0 (or Node.js >= 18)
 - Rust >= 1.70
 - Windows 10/11 (WebView2)
 - [Just](https://github.com/casey/just) (optional, for command simplification)
@@ -49,7 +49,7 @@ A Tauri-based industrial data visualization system for reading, processing, and 
 ### Install Dependencies
 
 ```bash
-npm install
+bun install
 ```
 
 ### Development Mode
@@ -58,8 +58,8 @@ npm install
 # Using just
 just dev
 
-# Or using npm directly
-npm run tauri:dev
+# Or using bun directly
+bun run tauri:dev
 ```
 
 ### Build

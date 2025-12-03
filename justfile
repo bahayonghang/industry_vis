@@ -1,5 +1,6 @@
 # Industry Vis Justfile
 # https://github.com/casey/just
+# Package manager: bun (https://bun.sh)
 
 # 默认命令：显示帮助
 default:
@@ -32,43 +33,44 @@ help:
     @echo "其他命令:"
     @echo "  just install    安装所有依赖"
     @echo "  just clean      清理构建产物"
+    @echo "  just kill-dev   终止残留的开发服务器进程"
     @echo "  just fmt        格式化 Rust 代码"
     @echo "  just update     更新所有依赖"
     @echo ""
 
 # 安装依赖
 install:
-    npm install
-    cd docs && npm install
+    bun install
+    cd docs && bun install
 
 # 开发模式
 dev:
-    npm run tauri:dev
+    bun run tauri:dev
 
 # 仅前端开发
 dev-web:
-    npm run dev
+    bun run dev
 
 # 快速构建便携版（日常开发测试用，只生成 exe）
 build:
-    npm run build
+    bun run build
     cd src-tauri && cargo build --release
     @echo ""
     @echo "构建完成: src-tauri/target/release/industry-vis.exe"
 
 # 构建安装包（正式发布用，生成 setup.exe）
 release:
-    npm run tauri:build
+    bun run tauri:build
     @echo ""
     @echo "安装包已生成: src-tauri/target/release/bundle/nsis/"
 
 # 仅构建前端
 build-web:
-    npm run build
+    bun run build
 
 # 运行测试
 test:
-    npm run test
+    bun run test
     cd src-tauri && cargo test
 
 # 运行 Rust 测试
@@ -77,7 +79,7 @@ test-rust:
 
 # 检查代码
 check:
-    npm run lint
+    bun run lint
     cd src-tauri && cargo check
 
 # 格式化代码
@@ -92,22 +94,38 @@ clean:
 
 # 启动文档开发服务器
 docs:
-    cd docs && npm run dev
+    cd docs && bun run dev
 
 # 构建文档
 docs-build:
-    cd docs && npm run build
+    cd docs && bun run build
 
 # 预览构建后的文档
 docs-preview:
-    cd docs && npm run preview
+    cd docs && bun run preview
 
 # 生成图标
 icons:
-    npx tauri icon app-icon.svg
+    bunx tauri icon app-icon.svg
+
+# 终止残留的开发服务器进程 (Windows)
+[windows]
+kill-dev:
+    @echo "正在检查并终止残留的开发进程..."
+    -powershell -Command "Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"
+    -powershell -Command "Get-Process -Name 'industry-vis' -ErrorAction SilentlyContinue | Stop-Process -Force"
+    @echo "清理完成"
+
+# 终止残留的开发服务器进程 (Unix)
+[unix]
+kill-dev:
+    @echo "正在检查并终止残留的开发进程..."
+    -lsof -ti:5173 | xargs -r kill -9
+    -pkill -f 'industry-vis' || true
+    @echo "清理完成"
 
 # 更新依赖
 update:
-    npm update
-    cd docs && npm update
+    bun update
+    cd docs && bun update
     cd src-tauri && cargo update
