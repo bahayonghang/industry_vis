@@ -43,7 +43,8 @@
 
 - [Bun](https://bun.sh) >= 1.0 (或 Node.js >= 18)
 - Rust >= 1.70
-- Windows 10/11 (WebView2)
+- Windows 10/11
+- [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (必需，若启动报错请先安装)
 - [Just](https://github.com/casey/just) (可选，命令简化)
 
 ### 安装依赖

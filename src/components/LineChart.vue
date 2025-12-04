@@ -65,6 +65,7 @@ const chartOption = computed(() => {
   const bgColor = 'transparent'
   
   // 根据接口版本选择数据源
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let series: any[]
   
   if (props.useV2 && dataStore.chartSeries.length > 0) {
@@ -152,6 +153,7 @@ const chartOption = computed(() => {
       textStyle: {
         color: isDark ? '#e2e8f0' : '#1e293b',
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       formatter: (params: any[]) => {
         if (!params.length) return ''
         const time = new Date(params[0].axisValue).toLocaleString('zh-CN')

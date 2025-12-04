@@ -43,7 +43,8 @@ A Tauri-based industrial data visualization system for reading, processing, and 
 
 - [Bun](https://bun.sh) >= 1.0 (or Node.js >= 18)
 - Rust >= 1.70
-- Windows 10/11 (WebView2)
+- Windows 10/11
+- [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (required, install if app fails to start)
 - [Just](https://github.com/casey/just) (optional, for command simplification)
 
 ### Install Dependencies
