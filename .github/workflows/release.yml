@@ -47,6 +47,32 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
 
+      # =====================
+      # CI 检查（与 just ci 一致）
+      # =====================
+      
+      - name: Lint - Frontend ESLint
+        run: bun run lint
+
+      - name: Lint - Rust format check
+        run: cargo fmt --check
+        working-directory: src-tauri
+
+      - name: Lint - Rust Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        working-directory: src-tauri
+
+      - name: Test - Frontend
+        run: bun run test
+
+      - name: Test - Rust
+        run: cargo test
+        working-directory: src-tauri
+
+      # =====================
+      # 构建与发布
+      # =====================
+
       - name: Sync version file
         run: bun run sync-version
 
@@ -65,7 +91,7 @@ jobs:
             
             ### 系统要求
             - Windows 10/11 (64-bit)
-            - WebView2 Runtime (安装程序会自动安装)
+            - [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (若启动报错请先安装)
           releaseDraft: false
           prerelease: false
           includeDebug: false
