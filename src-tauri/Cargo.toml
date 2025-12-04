@@ -1,6 +1,6 @@
 [package]
 name = "industry-vis"
-version = "1.0.0"
+version = "1.0.2"
 description = "工业数据可视化系统"
 authors = ["you"]
 edition = "2021"
@@ -29,6 +29,13 @@ dirs = "5"
 tiberius = { version = "0.12", default-features = false, features = ["rustls", "chrono"] }
 tokio-util = { version = "0.7", features = ["compat"] }
 async-trait = "0.1"
+
+# Connection pool (async)
+bb8 = "0.8"
+
+# Config hot-reload
+notify = { version = "6", default-features = false, features = ["macos_kqueue"] }
+parking_lot = "0.12"
 
 # Data processing
 polars = { version = "0.44", features = [
