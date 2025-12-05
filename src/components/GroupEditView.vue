@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { 
   NButton, 
   NIcon, 
@@ -57,8 +57,8 @@ const saving = ref(false)
 const showTagModal = ref(false)
 const activeChartId = ref<string | null>(null)  // 当前添加标签的图表
 
-// 数据处理配置
-const processingConfig = ref<DataProcessingConfig>(createDefaultProcessingConfig())
+// 数据处理配置 - 使用 reactive 确保嵌套属性的响应式更新
+const processingConfig = reactive<DataProcessingConfig>(createDefaultProcessingConfig())
 
 // 原始数据（用于检测变更）
 const originalName = ref('')
@@ -97,11 +97,11 @@ const queryTimeMs = computed(() => dataStore.queryTimeMs)
 const totalProcessed = computed(() => dataStore.totalProcessed)
 
 // 检测是否有变更
-watch([groupName, charts, processingConfig], () => {
+watch([groupName, charts, () => processingConfig], () => {
   hasChanges.value = 
     groupName.value !== originalName.value ||
     JSON.stringify(charts.value) !== JSON.stringify(originalCharts.value) ||
-    JSON.stringify(processingConfig.value) !== JSON.stringify(originalProcessingConfig.value)
+    JSON.stringify(processingConfig) !== JSON.stringify(originalProcessingConfig.value)
 }, { deep: true })
 
 // 初始化
@@ -124,10 +124,10 @@ function loadGroupData() {
     
     // 加载处理配置
     if (group.processingConfig) {
-      processingConfig.value = JSON.parse(JSON.stringify(group.processingConfig))
+      Object.assign(processingConfig, JSON.parse(JSON.stringify(group.processingConfig)))
       originalProcessingConfig.value = JSON.parse(JSON.stringify(group.processingConfig))
     } else {
-      processingConfig.value = createDefaultProcessingConfig()
+      Object.assign(processingConfig, createDefaultProcessingConfig())
       originalProcessingConfig.value = createDefaultProcessingConfig()
     }
     
@@ -139,7 +139,7 @@ function loadGroupData() {
       const [start, end] = getPresetRange('today')
       dataStore.setTimeRange(start, end)
       // 使用 V2 接口获取预分组数据
-      dataStore.fetchDataV2(processingConfig.value, false)
+      dataStore.fetchDataV2(processingConfig, false)
     }
   }
 }
@@ -207,7 +207,7 @@ function handleQuery(forceRefresh = false) {
   }
   dataStore.setSelectedTags(allTags.value)
   // 使用 V2 接口获取预分组数据
-  dataStore.fetchDataV2(processingConfig.value, forceRefresh)
+  dataStore.fetchDataV2(processingConfig, forceRefresh)
 }
 
 function handleForceRefresh() {
@@ -301,14 +301,14 @@ async function handleSave() {
       props.groupId,
       groupName.value.trim(),
       charts.value,
-      processingConfig.value
+      processingConfig
     )
     
     if (result) {
       message.success('分组已保存')
       originalName.value = result.name
       originalCharts.value = JSON.parse(JSON.stringify(result.charts))
-      originalProcessingConfig.value = JSON.parse(JSON.stringify(processingConfig.value))
+      originalProcessingConfig.value = JSON.parse(JSON.stringify(processingConfig))
       hasChanges.value = false
       emit('saved', result)
     } else if (tagGroupStore.error) {

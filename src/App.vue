@@ -15,10 +15,15 @@ import { useConfigStore } from '@/stores/config'
 const themeStore = useThemeStore()
 const configStore = useConfigStore()
 
-onMounted(() => {
+onMounted(async () => {
   themeStore.init()
   // 启动连接状态监控（自动验证 + 每10分钟刷新）
-  configStore.startConnectionMonitor()
+  // 使用 try-catch 确保连接失败不影响应用启动
+  try {
+    await configStore.startConnectionMonitor()
+  } catch (e) {
+    console.error('连接监控启动失败:', e)
+  }
 })
 
 onUnmounted(() => {

@@ -13,7 +13,8 @@ import {
   NTooltip,
   NDivider,
   NDropdown,
-  NModal
+  NModal,
+  NAlert
 } from 'naive-ui'
 import { 
   HomeOutline, 
@@ -25,7 +26,8 @@ import {
   ChevronBackOutline,
   ChevronForwardOutline,
   EllipsisVertical,
-  InformationCircleOutline
+  InformationCircleOutline,
+  WarningOutline
 } from '@vicons/ionicons5'
 import type { MenuOption, DropdownOption } from 'naive-ui'
 import { useThemeStore } from '@/stores/theme'
@@ -203,6 +205,22 @@ const handleMoreSelect = (key: string) => {
         </NSpace>
         
         <NSpace align="center" :size="12">
+          <!-- 数据库未连接警告 -->
+          <NAlert 
+            v-if="!configStore.isConnected" 
+            type="warning" 
+            :bordered="false"
+            class="connection-alert"
+            closable
+          >
+            <template #icon>
+              <NIcon :component="WarningOutline" />
+            </template>
+            数据库未连接，请前往
+            <span class="alert-link" @click="router.push('/settings')">设置</span>
+            配置数据库
+          </NAlert>
+          
           <!-- 连接状态指示 -->
           <NTooltip>
             <template #trigger>
@@ -403,6 +421,40 @@ const handleMoreSelect = (key: string) => {
 .status-text {
   font-size: 13px;
   color: var(--text-secondary);
+}
+
+/* 连接警告样式 */
+.connection-alert {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.connection-alert :deep(.n-alert-body) {
+  padding: 0;
+}
+
+.alert-link {
+  color: var(--accent-primary);
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.alert-link:hover {
+  color: var(--accent-primary-hover);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* 内容区 */
