@@ -18,7 +18,7 @@ use tracing_subscriber::{
     EnvFilter, Layer,
 };
 
-/// 获取日志目录路径
+/// 获取日志根目录路径
 /// 优先使用 exe 同目录的 logs，否则使用 AppData
 pub fn get_log_dir() -> PathBuf {
     // 优先使用便携模式（exe 同目录）
@@ -41,6 +41,20 @@ pub fn get_log_dir() -> PathBuf {
 
     // 最后回退到当前目录
     PathBuf::from("logs")
+}
+
+/// 获取应用日志目录 (logs/app)
+fn get_app_log_dir() -> PathBuf {
+    let app_dir = get_log_dir().join("app");
+    let _ = fs::create_dir_all(&app_dir);
+    app_dir
+}
+
+/// 获取 SQL 日志目录 (logs/sql)
+fn get_sql_log_dir() -> PathBuf {
+    let sql_dir = get_log_dir().join("sql");
+    let _ = fs::create_dir_all(&sql_dir);
+    sql_dir
 }
 
 /// 清理超过指定天数的日志文件
@@ -81,27 +95,28 @@ pub struct LogGuards {
 /// 初始化日志系统
 /// 返回 LogGuards，必须持有直到应用退出以确保日志正确刷新
 pub fn init_logging() -> Result<LogGuards, Box<dyn std::error::Error>> {
-    let log_dir = get_log_dir();
+    let app_log_dir = get_app_log_dir();
+    let sql_log_dir = get_sql_log_dir();
 
     // 清理超过14天的日志
-    cleanup_old_logs(&log_dir, "app", 14);
-    cleanup_old_logs(&log_dir, "sql", 14);
+    cleanup_old_logs(&app_log_dir, "app", 14);
+    cleanup_old_logs(&sql_log_dir, "sql", 14);
 
-    // 创建前台操作日志 appender（按天轮转）
+    // 创建前台操作日志 appender（按天轮转，存放在 logs/app/ 目录）
     let app_appender = RollingFileAppender::builder()
         .rotation(Rotation::DAILY)
         .filename_prefix("app")
         .filename_suffix("log")
         .max_log_files(14)
-        .build(&log_dir)?;
+        .build(&app_log_dir)?;
 
-    // 创建 SQL 日志 appender（按天轮转）
+    // 创建 SQL 日志 appender（按天轮转，存放在 logs/sql/ 目录）
     let sql_appender = RollingFileAppender::builder()
         .rotation(Rotation::DAILY)
         .filename_prefix("sql")
         .filename_suffix("log")
         .max_log_files(14)
-        .build(&log_dir)?;
+        .build(&sql_log_dir)?;
 
     // 使用 non_blocking 包装，返回 guard 以确保退出时刷新
     let (app_writer, app_guard) = tracing_appender::non_blocking(app_appender);
@@ -144,7 +159,7 @@ pub fn init_logging() -> Result<LogGuards, Box<dyn std::error::Error>> {
         .with(console_layer)
         .init();
 
-    tracing::info!(target: "industry_vis_lib::commands", "日志系统初始化完成，日志目录: {}", log_dir.display());
+    tracing::info!(target: "industry_vis_lib::commands", "日志系统初始化完成，app日志: {}, sql日志: {}", app_log_dir.display(), sql_log_dir.display());
 
     Ok(LogGuards {
         _app_guard: app_guard,

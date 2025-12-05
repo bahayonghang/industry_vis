@@ -16,7 +16,13 @@ use crate::state::AppState;
 pub async fn get_available_tags(state: State<'_, Arc<RwLock<AppState>>>) -> AppResult<Vec<String>> {
     info!(target: "industry_vis::commands", "获取可用标签列表");
     let state = state.read().await;
-    state.query_service().get_available_tags().await
+    match state.query_service() {
+        Some(service) => service.get_available_tags().await,
+        None => {
+            info!(target: "industry_vis::commands", "数据库未连接，返回空标签列表");
+            Ok(vec![])
+        }
+    }
 }
 
 /// 模糊搜索标签
@@ -29,7 +35,13 @@ pub async fn search_tags(
     info!(target: "industry_vis::commands", "搜索标签 - 关键词: {}", keyword);
     let limit = limit.unwrap_or(50) as usize;
     let state = state.read().await;
-    state.query_service().search_tags(&keyword, limit).await
+    match state.query_service() {
+        Some(service) => service.search_tags(&keyword, limit).await,
+        None => {
+            info!(target: "industry_vis::commands", "数据库未连接，返回空搜索结果");
+            Ok(vec![])
+        }
+    }
 }
 
 /// 查询历史数据
@@ -49,10 +61,17 @@ pub async fn query_history(
     );
 
     let state = state.read().await;
-    state
-        .query_service()
-        .query_history(&params, processing_config.as_ref(), force_refresh)
-        .await
+    match state.query_service() {
+        Some(service) => {
+            service
+                .query_history(&params, processing_config.as_ref(), force_refresh)
+                .await
+        }
+        None => {
+            info!(target: "industry_vis::commands", "数据库未连接，无法查询历史数据");
+            Err(crate::error::AppError::DatabaseNotConnected)
+        }
+    }
 }
 
 /// 查询历史数据 V2 (预分组格式)
@@ -72,10 +91,17 @@ pub async fn query_history_v2(
     );
 
     let state = state.read().await;
-    state
-        .query_service()
-        .query_history_v2(&params, processing_config.as_ref(), force_refresh)
-        .await
+    match state.query_service() {
+        Some(service) => {
+            service
+                .query_history_v2(&params, processing_config.as_ref(), force_refresh)
+                .await
+        }
+        None => {
+            info!(target: "industry_vis::commands", "数据库未连接，无法查询历史数据");
+            Err(crate::error::AppError::DatabaseNotConnected)
+        }
+    }
 }
 
 /// 导出数据到 CSV

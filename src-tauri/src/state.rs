@@ -85,14 +85,20 @@ impl AppState {
     }
 
     /// 获取查询服务（克隆一份引用）
-    pub fn query_service(&self) -> QueryServiceHandle {
+    /// 如果连接池未初始化，返回 None
+    pub fn query_service(&self) -> Option<QueryServiceHandle> {
         let guard = self.query_service.read();
-        let service = guard.as_ref().expect("QueryService not initialized");
-        QueryServiceHandle {
+        let service = guard.as_ref()?;
+        Some(QueryServiceHandle {
             source: SqlServerSource::from_pool(Arc::clone(service.pool())),
             cache: Arc::clone(&self.cache),
             default_table: service.default_table().to_string(),
-        }
+        })
+    }
+
+    /// 检查连接池是否已初始化
+    pub fn is_pool_initialized(&self) -> bool {
+        self.pool.is_some()
     }
 
     /// 获取标签分组服务

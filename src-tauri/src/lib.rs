@@ -47,19 +47,16 @@ pub fn run() {
     // 使用 tokio 运行时初始化异步状态
     let app_state = async_runtime::block_on(async {
         match AppState::new().await {
-            Ok(mut state) => {
-                // 尝试初始化连接池（失败不影响应用启动）
-                if let Err(e) = state.init_pool().await {
-                    tracing::warn!(target: "industry_vis::lib", "初始化连接池失败: {}", e);
-                }
-                Arc::new(RwLock::new(state))
-            }
+            Ok(state) => Arc::new(RwLock::new(state)),
             Err(e) => {
                 tracing::error!(target: "industry_vis::lib", "初始化应用状态失败: {}", e);
                 panic!("无法初始化应用状态: {}", e);
             }
         }
     });
+
+    // 克隆一份状态用于后台初始化连接池
+    let app_state_for_pool = app_state.clone();
 
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -70,6 +67,7 @@ pub fn run() {
             load_config,
             save_config,
             test_connection,
+            get_connection_status,
             // 数据查询
             get_available_tags,
             search_tags,
@@ -93,6 +91,19 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("构建 Tauri 应用失败");
+
+    // 在后台尝试初始化连接池（失败不影响应用启动）
+    async_runtime::spawn(async move {
+        let mut state = app_state_for_pool.write().await;
+        if state.is_pool_initialized() {
+            return;
+        }
+        if let Err(e) = state.init_pool().await {
+            tracing::warn!(target: "industry_vis::lib", "后台初始化连接池失败: {}", e);
+        } else {
+            tracing::info!(target: "industry_vis::lib", "后台初始化连接池成功");
+        }
+    });
 
     app.run(|_app_handle, event| {
         if let RunEvent::Exit = event {

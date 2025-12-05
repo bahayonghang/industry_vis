@@ -47,7 +47,7 @@ impl PoolConfig {
     /// 创建适合桌面应用的配置
     pub fn for_desktop() -> Self {
         Self {
-            max_size: 3,
+            max_size: 1,
             min_idle: Some(1),
             connection_timeout_secs: 30,
             idle_timeout_secs: Some(300), // 5 分钟
@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn test_pool_config_desktop() {
         let config = PoolConfig::for_desktop();
-        assert_eq!(config.max_size, 3);
+        assert_eq!(config.max_size, 1);
     }
 
     #[test]

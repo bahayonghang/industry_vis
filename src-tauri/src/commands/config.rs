@@ -62,3 +62,10 @@ pub async fn test_connection(config: DatabaseConfig) -> AppResult<ConnectionTest
         }
     }
 }
+
+/// 获取当前连接状态（是否已初始化连接池）
+#[tauri::command]
+pub async fn get_connection_status(state: State<'_, Arc<RwLock<AppState>>>) -> AppResult<bool> {
+    let state = state.read().await;
+    Ok(state.is_pool_initialized())
+}

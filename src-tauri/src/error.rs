@@ -24,6 +24,9 @@ pub enum AppError {
     #[error("查询执行错误: {0}")]
     Query(String),
 
+    #[error("数据库未连接")]
+    DatabaseNotConnected,
+
     // ============== 数据处理相关 ==============
     #[error("数据处理错误: {0}")]
     DataProcessing(String),
