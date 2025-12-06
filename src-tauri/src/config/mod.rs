@@ -6,7 +6,7 @@ mod app;
 mod tag_groups;
 mod watcher;
 
-pub use app::{AppConfig, DatabaseConfig, QueryConfig};
+pub use app::{AppConfig, DatabaseConfig, QueryConfig, SchemaConfig};
 pub use tag_groups::TagGroupConfigManager;
 pub use watcher::ConfigWatcher;
 

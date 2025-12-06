@@ -54,11 +54,43 @@ impl Default for QueryConfig {
     }
 }
 
+/// Schema 配置
+///
+/// 用于选择不同厂商的数据库 Schema Profile。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SchemaConfig {
+    /// Profile 名称
+    ///
+    /// 可选值：
+    /// - `"default"` - 默认 Profile（当前厂商）
+    ///
+    /// 后续可扩展更多厂商配置。
+    #[serde(default = "SchemaConfig::default_profile")]
+    pub profile: String,
+}
+
+impl SchemaConfig {
+    fn default_profile() -> String {
+        "default".to_string()
+    }
+}
+
+impl Default for SchemaConfig {
+    fn default() -> Self {
+        Self {
+            profile: Self::default_profile(),
+        }
+    }
+}
+
 /// 应用配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct AppConfig {
     pub database: DatabaseConfig,
     pub query: QueryConfig,
+    /// Schema 配置（可选，默认使用 default profile）
+    #[serde(default)]
+    pub schema: SchemaConfig,
 }
 
 impl AppConfig {

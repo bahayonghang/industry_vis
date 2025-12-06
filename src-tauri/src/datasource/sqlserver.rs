@@ -1,6 +1,7 @@
 //! SQL Server 数据源实现
 //!
 //! 使用 bb8 连接池管理数据库连接。
+//! 支持通过 SchemaProfile 配置不同厂商的数据库结构。
 
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -8,20 +9,34 @@ use tiberius::Query;
 use tracing::{debug, error, info};
 
 use super::pool::ConnectionPool;
+use super::profiles::ProfileRegistry;
+use super::schema_profile::SchemaProfile;
 use super::traits::{DataSource, SourceMetadata, TableInfo};
 use crate::config::DatabaseConfig;
 use crate::error::{AppError, AppResult};
 use crate::models::HistoryRecord;
 
 /// SQL Server 数据源实现
+///
+/// 支持通过 `SchemaProfile` 配置不同厂商的数据库结构。
+/// 默认使用 `DefaultProfile`。
 pub struct SqlServerSource {
     pool: Arc<ConnectionPool>,
     metadata: SourceMetadata,
+    profile: Arc<dyn SchemaProfile>,
 }
 
 impl SqlServerSource {
-    /// 创建新的数据源（使用连接池）
+    /// 创建新的数据源（使用连接池和默认 Profile）
     pub async fn new(config: DatabaseConfig) -> AppResult<Self> {
+        Self::new_with_profile(config, ProfileRegistry::default_profile()).await
+    }
+
+    /// 创建新的数据源（使用连接池和指定 Profile）
+    pub async fn new_with_profile(
+        config: DatabaseConfig,
+        profile: Arc<dyn SchemaProfile>,
+    ) -> AppResult<Self> {
         let metadata = SourceMetadata::new(
             format!("{}:{}", config.server, config.port),
             config.database.clone(),
@@ -29,26 +44,49 @@ impl SqlServerSource {
 
         let pool = ConnectionPool::with_defaults(config).await?;
 
+        info!(target: "industry_vis::datasource",
+            profile = %profile.name(),
+            "创建 SqlServerSource，使用 Profile: {}", profile.name()
+        );
+
         Ok(Self {
             pool: Arc::new(pool),
             metadata,
+            profile,
         })
     }
 
-    /// 从现有连接池创建
+    /// 从现有连接池创建（使用默认 Profile）
     pub fn from_pool(pool: Arc<ConnectionPool>) -> Self {
+        Self::from_pool_with_profile(pool, ProfileRegistry::default_profile())
+    }
+
+    /// 从现有连接池创建（使用指定 Profile）
+    pub fn from_pool_with_profile(
+        pool: Arc<ConnectionPool>,
+        profile: Arc<dyn SchemaProfile>,
+    ) -> Self {
         let config = pool.config();
         let metadata = SourceMetadata::new(
             format!("{}:{}", config.server, config.port),
             config.database.clone(),
         );
 
-        Self { pool, metadata }
+        Self {
+            pool,
+            metadata,
+            profile,
+        }
     }
 
     /// 获取连接池引用
     pub fn pool(&self) -> &Arc<ConnectionPool> {
         &self.pool
+    }
+
+    /// 获取 Profile 引用
+    pub fn profile(&self) -> &Arc<dyn SchemaProfile> {
+        &self.profile
     }
 
     /// 获取数据库名称
@@ -137,21 +175,15 @@ impl DataSource for SqlServerSource {
         let mut conn = self.pool.get().await?;
         let database = self.database().to_string();
 
-        // 从 TagDataBase 表模糊搜索 TagName
+        // 使用 Profile 生成 SQL
         let search_pattern = format!("%{}%", keyword);
-
-        let sql = format!(
-            r#"SELECT DISTINCT TOP {} TagName 
-               FROM [TagDataBase] 
-               WHERE TagName LIKE @P1
-               ORDER BY TagName"#,
-            limit
-        );
+        let sql = self.profile.tag_search_sql(limit);
 
         debug!(target: "industry_vis::datasource",
             database = %database,
             keyword = %keyword,
             pattern = %search_pattern,
+            profile = %self.profile.name(),
             "执行标签搜索 SQL: {}", sql
         );
 
@@ -203,32 +235,12 @@ impl DataSource for SqlServerSource {
         let database = self.database().to_string();
 
         let tag_count = tags.map(|t| t.len()).unwrap_or(0);
-        let tag_filter = match tags {
-            Some(t) if !t.is_empty() => {
-                let tag_list = t
-                    .iter()
-                    .map(|s| format!("'{}'", s.replace('\'', "''")))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("AND TagName IN ({})", tag_list)
-            }
-            _ => String::new(),
-        };
 
-        // 优化SQL：
-        // 1. 使用 WITH (NOLOCK) 减少锁等待
-        // 2. 只按 DateTime 排序，充分利用索引
-        let sql = format!(
-            r#"SELECT DateTime, TagName, TagVal, TagQuality 
-            FROM [{}] WITH (NOLOCK)
-            WHERE DateTime BETWEEN '{}' AND '{}'
-            {}
-            ORDER BY DateTime"#,
-            table.replace(']', "]]"),
-            start_time.replace('\'', "''"),
-            end_time.replace('\'', "''"),
-            tag_filter
-        );
+        // 使用 Profile 生成 SQL
+        let tag_filter = self.profile.build_tag_filter(tags);
+        let sql = self
+            .profile
+            .history_query_sql(table, start_time, end_time, &tag_filter);
 
         debug!(target: "industry_vis::datasource",
             database = %database,
@@ -236,6 +248,7 @@ impl DataSource for SqlServerSource {
             start_time = %start_time,
             end_time = %end_time,
             tag_count = tag_count,
+            profile = %self.profile.name(),
             "执行历史查询"
         );
 
@@ -254,22 +267,11 @@ impl DataSource for SqlServerSource {
             .await
             .map_err(|e| AppError::Query(format!("获取历史结果失败: {}", e)))?;
 
-        let records: Vec<HistoryRecord> = rows
-            .iter()
-            .map(|row| {
-                let dt: Option<chrono::NaiveDateTime> = row.get(0);
-                let date_time = dt
-                    .map(|d| d.format("%Y-%m-%dT%H:%M:%S%.3f").to_string())
-                    .unwrap_or_default();
-
-                HistoryRecord::new(
-                    date_time,
-                    row.get::<&str, _>(1).unwrap_or("").trim().to_string(),
-                    row.get::<f32, _>(2).unwrap_or(0.0) as f64,
-                    row.get::<&str, _>(3).unwrap_or("").trim().to_string(),
-                )
-            })
-            .collect();
+        // 使用 Profile 映射行数据
+        let mut records: Vec<HistoryRecord> = Vec::with_capacity(rows.len());
+        for row in rows.iter() {
+            records.push(self.profile.map_history_row(row)?);
+        }
 
         info!(target: "industry_vis::datasource",
             database = %database,

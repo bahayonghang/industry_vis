@@ -7,7 +7,9 @@ use std::sync::Arc;
 
 use crate::cache::{CacheConfig, QueryCache, SharedCache};
 use crate::config::ConfigState;
-use crate::datasource::{ConnectionPool, DataSource, PoolConfig, SqlServerSource};
+use crate::datasource::{
+    ConnectionPool, DataSource, PoolConfig, ProfileRegistry, SchemaProfile, SqlServerSource,
+};
 use crate::error::AppResult;
 use crate::models::{DataProcessingConfig, QueryParams, QueryResult, QueryResultV2};
 use crate::processing;
@@ -89,10 +91,28 @@ impl AppState {
     pub fn query_service(&self) -> Option<QueryServiceHandle> {
         let guard = self.query_service.read();
         let service = guard.as_ref()?;
+
+        // 从配置获取 Profile
+        let profile = self.get_schema_profile();
+
         Some(QueryServiceHandle {
-            source: SqlServerSource::from_pool(Arc::clone(service.pool())),
+            source: SqlServerSource::from_pool_with_profile(Arc::clone(service.pool()), profile),
             cache: Arc::clone(&self.cache),
             default_table: service.default_table().to_string(),
+        })
+    }
+
+    /// 获取当前配置的 Schema Profile
+    fn get_schema_profile(&self) -> Arc<dyn SchemaProfile> {
+        let profile_name = &self.config.app_config().schema.profile;
+        ProfileRegistry::get(profile_name).unwrap_or_else(|e| {
+            tracing::warn!(
+                target: "industry_vis::state",
+                error = %e,
+                profile = %profile_name,
+                "无法获取指定的 Profile，使用默认 Profile"
+            );
+            ProfileRegistry::default_profile()
         })
     }
 
