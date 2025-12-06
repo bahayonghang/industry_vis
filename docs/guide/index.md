@@ -76,3 +76,4 @@ Industry Vis 是一个基于 Tauri 的工业数据可视化系统，专为读取
 - [快速开始](/guide/getting-started) - 安装和运行项目
 - [配置](/guide/configuration) - 配置数据库连接
 - [数据查询](/guide/data-query) - 查询和处理数据
+- [Schema Profile](/guide/schema-profile) - 适配不同厂商的数据库结构

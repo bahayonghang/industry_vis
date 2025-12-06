@@ -33,8 +33,15 @@ export default defineConfig({
               text: '功能',
               items: [
                 { text: '数据查询', link: '/guide/data-query' },
+                { text: '数据处理', link: '/guide/data-processing' },
                 { text: '数据可视化', link: '/guide/visualization' },
                 { text: '数据导出', link: '/guide/export' },
+              ],
+            },
+            {
+              text: '高级',
+              items: [
+                { text: 'Schema Profile', link: '/guide/schema-profile' },
               ],
             },
           ],
@@ -88,8 +95,15 @@ export default defineConfig({
               text: 'Features',
               items: [
                 { text: 'Data Query', link: '/en/guide/data-query' },
+                { text: 'Data Processing', link: '/en/guide/data-processing' },
                 { text: 'Visualization', link: '/en/guide/visualization' },
                 { text: 'Export', link: '/en/guide/export' },
+              ],
+            },
+            {
+              text: 'Advanced',
+              items: [
+                { text: 'Schema Profile', link: '/en/guide/schema-profile' },
               ],
             },
           ],

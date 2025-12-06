@@ -108,6 +108,74 @@ Configuration file location:
 |--------|------|-------------|
 | TagName | nvarchar(50) | Tag name |
 
+## Custom Schema Profile
+
+The system supports different database schemas from various vendors through **Schema Profile**. This allows you to adapt to different table structures and column names while keeping data processing and visualization consistent.
+
+### Configuration
+
+Add `schema` section in `config.toml`:
+
+```toml
+[schema]
+profile = "default"  # Profile name, default is "default"
+```
+
+### Available Profiles
+
+| Profile | Description |
+|---------|-------------|
+| `default` | Default profile for current vendor (TagDataBase + 历史表) |
+
+### Adding a New Profile
+
+To support a new vendor's database schema, follow these steps:
+
+1. **Create Profile file**: `src-tauri/src/datasource/profiles/vendor_x.rs`
+
+```rust
+use crate::datasource::SchemaProfile;
+use crate::error::AppResult;
+use crate::models::HistoryRecord;
+
+pub struct VendorXProfile;
+
+impl SchemaProfile for VendorXProfile {
+    fn name(&self) -> &str { "vendor_x" }
+    
+    fn tag_search_sql(&self, limit: usize) -> String {
+        // Return SQL for tag search
+        format!("SELECT TOP {} TagName FROM YourTagTable WHERE TagName LIKE @P1", limit)
+    }
+    
+    fn history_query_sql(&self, table: &str, start: &str, end: &str, filter: &str) -> String {
+        // Return SQL for history query
+        format!("SELECT time_col, tag_col, value_col, quality_col FROM [{}] WHERE ...", table)
+    }
+    
+    fn map_history_row(&self, row: &tiberius::Row) -> AppResult<HistoryRecord> {
+        // Map database row to HistoryRecord
+        Ok(HistoryRecord::new(/* ... */))
+    }
+}
+```
+
+2. **Register in ProfileRegistry**: `src-tauri/src/datasource/profiles/registry.rs`
+
+```rust
+pub fn get(name: &str) -> AppResult<Arc<dyn SchemaProfile>> {
+    match name {
+        "default" => Ok(Arc::new(DefaultProfile::new())),
+        "vendor_x" => Ok(Arc::new(VendorXProfile::new())),  // Add this line
+        _ => Err(AppError::Config(format!("Unknown profile: {}", name))),
+    }
+}
+```
+
+3. **Update config** and restart the application.
+
+For detailed documentation, see [Schema Profile Guide](./docs/guide/schema-profile.md).
+
 ## Project Structure
 
 ```

@@ -108,6 +108,74 @@ just release
 |------|------|------|
 | TagName | nvarchar(50) | 标签名称 |
 
+## 自定义 Schema Profile
+
+系统通过 **Schema Profile** 支持不同厂商的数据库结构。这允许您适配不同的表结构和字段名称，同时保持数据处理和可视化逻辑一致。
+
+### 配置方式
+
+在 `config.toml` 中添加 `schema` 配置节：
+
+```toml
+[schema]
+profile = "default"  # Profile 名称，默认为 "default"
+```
+
+### 可用的 Profile
+
+| Profile | 说明 |
+|---------|------|
+| `default` | 默认 Profile，适配当前厂商（TagDataBase + 历史表） |
+
+### 添加新的 Profile
+
+如需支持新厂商的数据库结构，按以下步骤操作：
+
+1. **创建 Profile 文件**：`src-tauri/src/datasource/profiles/vendor_x.rs`
+
+```rust
+use crate::datasource::SchemaProfile;
+use crate::error::AppResult;
+use crate::models::HistoryRecord;
+
+pub struct VendorXProfile;
+
+impl SchemaProfile for VendorXProfile {
+    fn name(&self) -> &str { "vendor_x" }
+    
+    fn tag_search_sql(&self, limit: usize) -> String {
+        // 返回标签搜索 SQL
+        format!("SELECT TOP {} TagName FROM YourTagTable WHERE TagName LIKE @P1", limit)
+    }
+    
+    fn history_query_sql(&self, table: &str, start: &str, end: &str, filter: &str) -> String {
+        // 返回历史查询 SQL
+        format!("SELECT time_col, tag_col, value_col, quality_col FROM [{}] WHERE ...", table)
+    }
+    
+    fn map_history_row(&self, row: &tiberius::Row) -> AppResult<HistoryRecord> {
+        // 将数据库行映射为 HistoryRecord
+        Ok(HistoryRecord::new(/* ... */))
+    }
+}
+```
+
+2. **在 ProfileRegistry 中注册**：`src-tauri/src/datasource/profiles/registry.rs`
+
+```rust
+pub fn get(name: &str) -> AppResult<Arc<dyn SchemaProfile>> {
+    match name {
+        "default" => Ok(Arc::new(DefaultProfile::new())),
+        "vendor_x" => Ok(Arc::new(VendorXProfile::new())),  // 添加此行
+        _ => Err(AppError::Config(format!("未知的 Profile: {}", name))),
+    }
+}
+```
+
+3. **更新配置**并重启应用。
+
+详细文档请参阅 [Schema Profile 指南](./docs/guide/schema-profile.md)。
+
 ## 项目结构
 
 ```

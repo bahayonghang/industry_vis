@@ -48,3 +48,5 @@ The system queries the `历史表` (History Table) in `控制器数据库` (Cont
 
 - [Quick Start](/en/guide/getting-started) - Install and run the project
 - [Configuration](/en/guide/configuration) - Configure database connection
+- [Data Query](/en/guide/data-query) - Query and process data
+- [Schema Profile](/en/guide/schema-profile) - Adapt to different vendor database structures
