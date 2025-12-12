@@ -1,65 +1,66 @@
 # 配置
 
-Industry Vis 使用 TOML 格式的配置文件。
+Industry Vis 使用 TOML 格式的配置文件进行应用配置。
 
 ## 配置文件位置
 
-配置文件 `config.toml` 位于应用程序可执行文件所在目录。开发时位于项目根目录。
+- **开发环境**：项目根目录 `config.toml`
+- **生产环境**：应用程序可执行文件所在目录
 
-## 配置项说明
+::: info 便携模式
+应用会优先读取可执行文件同目录下的配置文件，便于 U 盘便携使用。
+:::
 
-### 数据库配置 `[database]`
+## 数据库配置
+
+### `[database]` 配置段
 
 ```toml
 [database]
-# SQL Server 服务器地址
-server = "localhost"
-
-# SQL Server 端口（默认 1433）
-port = 1433
-
-# 数据库名称
-database = "控制器数据库"
-
-# 用户名（SQL Server 认证）
-username = "sa"
-
-# 密码
-password = "your_password"
+server = "localhost"      # SQL Server 服务器地址
+port = 1433               # SQL Server 端口（默认 1433）
+database = "控制器数据库"  # 数据库名称
+username = "sa"           # 用户名（SQL Server 认证）
+password = "your_password" # 密码
 ```
 
-### 查询配置 `[query]`
+### `[query]` 配置段
 
 ```toml
 [query]
-# 默认查询表名
-default_table = "历史表"
+default_table = "历史表"  # 默认查询表名
 ```
 
 ## 默认值
 
 如果配置文件不存在，系统将使用以下默认值：
 
-| 配置项 | 默认值 |
-|--------|--------|
-| server | localhost |
-| port | 1433 |
-| database | 控制器数据库 |
-| username | sa |
-| password | (空) |
-| default_table | 历史表 |
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `server` | localhost | 数据库服务器地址 |
+| `port` | 1433 | SQL Server 默认端口 |
+| `database` | 控制器数据库 | 目标数据库名称 |
+| `username` | sa | 登录用户名 |
+| `password` | (空) | 登录密码 |
+| `default_table` | 历史表 | 默认查询的数据表 |
 
 ## 在应用中配置
 
-你也可以在应用的"设置"页面中配置数据库连接：
+你也可以通过应用界面配置数据库连接：
 
-1. 点击顶部导航栏的"设置"
+1. 点击顶部导航栏的 **设置**
 2. 填写数据库连接信息
-3. 点击"测试连接"验证配置
-4. 点击"保存配置"
+3. 点击 **测试连接** 验证配置
+4. 点击 **保存配置**
+
+::: tip 推荐方式
+使用应用内设置页面配置更加直观，且会自动验证连接可用性。
+:::
 
 ## 安全建议
 
-- 不要将包含密码的 `config.toml` 提交到版本控制
-- 在生产环境中使用强密码
-- 限制数据库用户的权限，只授予必要的读取权限
+::: danger 重要安全事项
+- **不要** 将包含密码的 `config.toml` 提交到版本控制
+- 在生产环境中使用 **强密码**
+- 限制数据库用户的权限，只授予 **必要的读取权限**
+:::
