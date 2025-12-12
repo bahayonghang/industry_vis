@@ -1,0 +1,302 @@
+/* ==========================================
+   Industry Vis 文档主题样式
+   参考 Windsurf 文档风格
+   ========================================== */
+
+:root {
+  /* 品牌色调整 - 更现代的绿色调 */
+  --vp-c-brand-1: #10b981;
+  --vp-c-brand-2: #059669;
+  --vp-c-brand-3: #047857;
+  --vp-c-brand-soft: rgba(16, 185, 129, 0.14);
+
+  /* 字体优化 */
+  --vp-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, 'Noto Sans SC', sans-serif;
+  --vp-font-family-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+}
+
+.dark {
+  --vp-c-brand-1: #34d399;
+  --vp-c-brand-2: #10b981;
+  --vp-c-brand-3: #059669;
+}
+
+/* ==========================================
+   标题样式优化
+   ========================================== */
+.vp-doc h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.5rem;
+}
+
+.vp-doc h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 2.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.vp-doc h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 2rem;
+}
+
+/* ==========================================
+   代码块样式 - 类似 Windsurf
+   ========================================== */
+.vp-doc div[class*='language-'] {
+  border-radius: 8px;
+  border: 1px solid var(--vp-c-divider);
+  margin: 1rem 0;
+}
+
+.vp-doc div[class*='language-'] code {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* 代码块标题栏 */
+.vp-doc div[class*='language-']::before {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--vp-c-text-2);
+}
+
+/* 行内代码 */
+.vp-doc :not(pre) > code {
+  background-color: var(--vp-c-bg-soft);
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: var(--vp-c-brand-1);
+}
+
+/* ==========================================
+   提示框样式优化 - Windsurf 风格
+   ========================================== */
+.vp-doc .custom-block {
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  border-left: 4px solid;
+}
+
+.vp-doc .custom-block .custom-block-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Info 提示框 - 蓝色调 */
+.vp-doc .custom-block.info {
+  background-color: rgba(59, 130, 246, 0.08);
+  border-color: #3b82f6;
+}
+
+.vp-doc .custom-block.info .custom-block-title {
+  color: #3b82f6;
+}
+
+/* Tip 提示框 - 绿色调 */
+.vp-doc .custom-block.tip {
+  background-color: rgba(16, 185, 129, 0.08);
+  border-color: var(--vp-c-brand-1);
+}
+
+.vp-doc .custom-block.tip .custom-block-title {
+  color: var(--vp-c-brand-1);
+}
+
+/* Warning 提示框 */
+.vp-doc .custom-block.warning {
+  background-color: rgba(245, 158, 11, 0.08);
+  border-color: #f59e0b;
+}
+
+.vp-doc .custom-block.warning .custom-block-title {
+  color: #d97706;
+}
+
+/* Danger 提示框 */
+.vp-doc .custom-block.danger {
+  background-color: rgba(239, 68, 68, 0.08);
+  border-color: #ef4444;
+}
+
+.vp-doc .custom-block.danger .custom-block-title {
+  color: #dc2626;
+}
+
+/* Details 折叠框 */
+.vp-doc .custom-block.details {
+  background-color: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  border-left-width: 1px;
+}
+
+/* ==========================================
+   表格样式优化
+   ========================================== */
+.vp-doc table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+.vp-doc th {
+  background-color: var(--vp-c-bg-soft);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--vp-c-divider);
+}
+
+.vp-doc td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.vp-doc tr:hover {
+  background-color: var(--vp-c-bg-soft);
+}
+
+/* ==========================================
+   右侧目录 (outline) 样式
+   ========================================== */
+.VPDocAsideOutline .outline-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--vp-c-text-1);
+  letter-spacing: 0.02em;
+}
+
+.VPDocAsideOutline .outline-link {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--vp-c-text-2);
+  transition: color 0.2s ease;
+}
+
+.VPDocAsideOutline .outline-link:hover {
+  color: var(--vp-c-brand-1);
+}
+
+.VPDocAsideOutline .outline-link.active {
+  color: var(--vp-c-brand-1);
+  font-weight: 500;
+}
+
+/* ==========================================
+   侧边栏样式优化
+   ========================================== */
+.VPSidebar .VPSidebarItem .text {
+  font-size: 0.9rem;
+}
+
+.VPSidebar .VPSidebarItem.is-active > .item > .link > .text {
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+
+/* 分组标题 */
+.VPSidebar .VPSidebarItem.level-0 > .item > .text {
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vp-c-text-2);
+}
+
+/* ==========================================
+   列表样式
+   ========================================== */
+.vp-doc ul {
+  padding-left: 1.25rem;
+}
+
+.vp-doc li {
+  margin: 0.5rem 0;
+}
+
+.vp-doc li::marker {
+  color: var(--vp-c-brand-1);
+}
+
+/* ==========================================
+   链接样式
+   ========================================== */
+.vp-doc a {
+  color: var(--vp-c-brand-1);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.vp-doc a:hover {
+  color: var(--vp-c-brand-2);
+  text-decoration: underline;
+}
+
+/* ==========================================
+   首页 Hero 样式
+   ========================================== */
+.VPHero .name {
+  background: linear-gradient(135deg, var(--vp-c-brand-1), var(--vp-c-brand-3));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ==========================================
+   Location 标签样式（自定义组件效果）
+   ========================================== */
+.vp-doc .location-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--vp-c-bg-soft);
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  margin: 0.5rem 0;
+}
+
+.vp-doc .location-badge code {
+  background: none;
+  padding: 0;
+  color: var(--vp-c-text-1);
+}
+
+/* ==========================================
+   响应式优化
+   ========================================== */
+@media (max-width: 768px) {
+  .vp-doc h1 {
+    font-size: 1.75rem;
+  }
+
+  .vp-doc h2 {
+    font-size: 1.35rem;
+  }
+
+  .vp-doc h3 {
+    font-size: 1.15rem;
+  }
+}
+
+/* ==========================================
+   打印样式
+   ========================================== */
+@media print {
+  .vp-doc .custom-block {
+    border: 1px solid #ddd;
+    background: #f9f9f9 !important;
+  }
+}

@@ -9,6 +9,27 @@ export default defineConfig({
   title: 'Industry Vis',
   description: '工业数据查看系统文档 | Industrial Data Viewer Documentation',
   
+  // 启用最后更新时间
+  lastUpdated: true,
+  
+  // Markdown 增强配置
+  markdown: {
+    lineNumbers: true,
+    container: {
+      tipLabel: '提示',
+      warningLabel: '警告',
+      dangerLabel: '危险',
+      infoLabel: '信息',
+      detailsLabel: '详情',
+    },
+  },
+  
+  // 页面 head 配置
+  head: [
+    ['link', { rel: 'icon', href: '/logo.svg' }],
+    ['meta', { name: 'theme-color', content: '#10b981' }],
+  ],
+  
   locales: {
     root: {
       label: '简体中文',
@@ -58,7 +79,11 @@ export default defineConfig({
         },
         outline: {
           label: '页面导航',
+          level: [2, 3],
         },
+        returnToTopLabel: '返回顶部',
+        sidebarMenuLabel: '菜单',
+        darkModeSwitchLabel: '主题',
         docFooter: {
           prev: '上一页',
           next: '下一页',
@@ -120,7 +145,11 @@ export default defineConfig({
         },
         outline: {
           label: 'On this page',
+          level: [2, 3],
         },
+        returnToTopLabel: 'Return to top',
+        sidebarMenuLabel: 'Menu',
+        darkModeSwitchLabel: 'Theme',
         footer: {
           message: 'Released under the MIT License',
         },
