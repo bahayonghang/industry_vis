@@ -11,7 +11,6 @@ declare module 'vue' {
     ConnectionSettings: typeof import('./components/ConnectionSettings.vue')['default']
     GroupEditView: typeof import('./components/GroupEditView.vue')['default']
     LineChart: typeof import('./components/LineChart.vue')['default']
-    NH2: typeof import('naive-ui')['NH2']
     NTag: typeof import('naive-ui')['NTag']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
