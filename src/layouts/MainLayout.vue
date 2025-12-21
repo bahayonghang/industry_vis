@@ -212,6 +212,7 @@ const handleMoreSelect = (key: string) => {
             :bordered="false"
             class="connection-alert"
             closable
+            style="display: inline-flex; align-items: center;"
           >
             <template #icon>
               <NIcon :component="WarningOutline" />
@@ -425,14 +426,26 @@ const handleMoreSelect = (key: string) => {
 
 /* 连接警告样式 */
 .connection-alert {
-  padding: 6px 12px;
+  padding: 4px 12px;
   font-size: 13px;
   border-radius: 8px;
   animation: slideIn 0.3s ease-out;
+  line-height: 1.5;
+  height: 32px;
 }
 
 .connection-alert :deep(.n-alert-body) {
   padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.connection-alert :deep(.n-alert__icon) {
+  margin-right: 8px;
+}
+
+.connection-alert :deep(.n-alert__close) {
+  margin-left: 8px;
 }
 
 .alert-link {
