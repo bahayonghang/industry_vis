@@ -26,15 +26,19 @@ features:
   - icon: ⚙️
     title: Flexible Configuration
     details: Supports portable and installed modes, auto-persistent configuration, light/dark theme toggle
+  - icon: 🎨
+    title: Modern Design System
+    details: Unified design token system, glassmorphism style, theme switching with performance optimization
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Desktop Framework | Tauri 2.x |
-| Backend | Rust + Polars |
-| Frontend | Vue 3 + Vite + TypeScript |
-| UI Components | Naive UI |
-| Charts | ECharts |
-| Database | SQL Server (tiberius) |
+| Layer | Technology | Version | Description |
+|-------|------------|---------|-------------|
+| Desktop Framework | Tauri | 2.1.1 | Lightweight cross-platform desktop framework |
+| Backend | Rust + Polars | 1.75+ | High-performance data processing engine |
+| Frontend | Vue 3 + Vite + TypeScript | 3.5.13 | Modern frontend technology stack |
+| UI Components | Naive UI | 2.40.1 | Enterprise Vue 3 component library |
+| Charts | ECharts | 5.5.1 | Powerful visualization chart library |
+| Database | SQL Server (tiberius) | 2019+ | Industrial data storage and query |
+| Design System | CSS Tokens + Glassmorphism | 1.0.0 | Unified design token system with modern visual style |
