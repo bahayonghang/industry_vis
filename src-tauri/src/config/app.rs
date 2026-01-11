@@ -7,6 +7,8 @@ use tracing::{debug, info};
 
 use crate::error::{AppError, AppResult};
 
+use super::PerformanceConfig;
+
 /// 数据库配置
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DatabaseConfig {
@@ -91,6 +93,9 @@ pub struct AppConfig {
     /// Schema 配置（可选，默认使用 default profile）
     #[serde(default)]
     pub schema: SchemaConfig,
+    /// 性能配置（可选，默认使用桌面应用配置）
+    #[serde(default)]
+    pub performance: PerformanceConfig,
 }
 
 impl AppConfig {
@@ -113,17 +118,17 @@ impl AppConfig {
     /// 获取配置文件路径
     pub fn config_path() -> AppResult<PathBuf> {
         // 优先使用 exe 同目录（便携模式）
-        if let Some(portable_path) = Self::portable_config_path() {
-            if portable_path.exists() {
-                return Ok(portable_path);
-            }
+        if let Some(portable_path) = Self::portable_config_path()
+            && portable_path.exists()
+        {
+            return Ok(portable_path);
         }
 
         // 检查 AppData 是否已有配置
-        if let Some(appdata_path) = Self::appdata_config_path() {
-            if appdata_path.exists() {
-                return Ok(appdata_path);
-            }
+        if let Some(appdata_path) = Self::appdata_config_path()
+            && appdata_path.exists()
+        {
+            return Ok(appdata_path);
         }
 
         // 都不存在时，默认使用 exe 同目录
@@ -134,13 +139,13 @@ impl AppConfig {
     /// 获取保存配置的路径
     fn save_config_path() -> AppResult<PathBuf> {
         // 优先尝试 exe 同目录（便携模式）
-        if let Some(portable_path) = Self::portable_config_path() {
-            if let Some(parent) = portable_path.parent() {
-                let test_file = parent.join(".config_write_test");
-                if fs::write(&test_file, "test").is_ok() {
-                    let _ = fs::remove_file(&test_file);
-                    return Ok(portable_path);
-                }
+        if let Some(portable_path) = Self::portable_config_path()
+            && let Some(parent) = portable_path.parent()
+        {
+            let test_file = parent.join(".config_write_test");
+            if fs::write(&test_file, "test").is_ok() {
+                let _ = fs::remove_file(&test_file);
+                return Ok(portable_path);
             }
         }
 

@@ -69,3 +69,12 @@ pub async fn get_connection_status(state: State<'_, Arc<RwLock<AppState>>>) -> A
     let state = state.read().await;
     Ok(state.is_pool_initialized())
 }
+
+/// 获取连接池状态
+#[tauri::command]
+pub async fn get_pool_state(
+    state: State<'_, Arc<RwLock<AppState>>>,
+) -> AppResult<Option<crate::datasource::PoolState>> {
+    let state = state.read().await;
+    Ok(state.get_pool_state())
+}

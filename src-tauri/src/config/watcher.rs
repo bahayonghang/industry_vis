@@ -2,13 +2,26 @@
 
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use parking_lot::RwLock;
+use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+use tauri::Emitter;
 use tracing::{debug, error, info, warn};
 
 use super::{AppConfig, TagGroupConfigManager};
 use crate::error::{AppError, AppResult};
+
+/// Config change event payload
+#[derive(Clone, Serialize)]
+pub struct ConfigChangeEvent {
+    /// Type of config that changed
+    pub config_type: String,
+    /// Whether reload was successful
+    pub success: bool,
+    /// Error message if failed
+    pub error: Option<String>,
+}
 
 /// 配置文件监听器
 pub struct ConfigWatcher {
@@ -16,6 +29,20 @@ pub struct ConfigWatcher {
 }
 
 impl ConfigWatcher {
+    /// Emit config change event to frontend
+    fn emit_config_change(config_type: &str, success: bool, error: Option<String>) {
+        if let Some(handle) = crate::get_app_handle() {
+            let event = ConfigChangeEvent {
+                config_type: config_type.to_string(),
+                success,
+                error,
+            };
+            if let Err(e) = handle.emit("config-changed", event) {
+                warn!(target: "industry_vis::config_watcher", "Failed to emit config change event: {}", e);
+            }
+        }
+    }
+
     /// 创建新的配置监听器
     pub fn new(
         app_config: Arc<RwLock<AppConfig>>,
@@ -53,32 +80,31 @@ impl ConfigWatcher {
         .map_err(|e| AppError::ConfigWatch(format!("创建监听器失败: {}", e)))?;
 
         // 添加监听路径
-        if let Some(ref path) = app_config_path {
-            if let Some(parent) = path.parent() {
-                if parent.exists() {
-                    watcher
-                        .watch(parent, RecursiveMode::NonRecursive)
-                        .map_err(|e| AppError::ConfigWatch(format!("监听应用配置失败: {}", e)))?;
-                    info!(target: "industry_vis::config_watcher", "开始监听应用配置: {:?}", parent);
-                }
-            }
+        if let Some(ref path) = app_config_path
+            && let Some(parent) = path.parent()
+            && parent.exists()
+        {
+            watcher
+                .watch(parent, RecursiveMode::NonRecursive)
+                .map_err(|e| AppError::ConfigWatch(format!("监听应用配置失败: {}", e)))?;
+            info!(target: "industry_vis::config_watcher", "开始监听应用配置: {:?}", parent);
         }
 
-        if let Some(ref path) = tag_group_path {
-            if let Some(parent) = path.parent() {
-                // 避免重复监听同一目录
-                let is_different_dir = app_config_path
-                    .as_ref()
-                    .and_then(|p| p.parent())
-                    .map(|p| p != parent)
-                    .unwrap_or(true);
+        if let Some(ref path) = tag_group_path
+            && let Some(parent) = path.parent()
+        {
+            // 避免重复监听同一目录
+            let is_different_dir = app_config_path
+                .as_ref()
+                .and_then(|p| p.parent())
+                .map(|p| p != parent)
+                .unwrap_or(true);
 
-                if is_different_dir && parent.exists() {
-                    watcher
-                        .watch(parent, RecursiveMode::NonRecursive)
-                        .map_err(|e| AppError::ConfigWatch(format!("监听分组配置失败: {}", e)))?;
-                    info!(target: "industry_vis::config_watcher", "开始监听分组配置: {:?}", parent);
-                }
+            if is_different_dir && parent.exists() {
+                watcher
+                    .watch(parent, RecursiveMode::NonRecursive)
+                    .map_err(|e| AppError::ConfigWatch(format!("监听分组配置失败: {}", e)))?;
+                info!(target: "industry_vis::config_watcher", "开始监听分组配置: {:?}", parent);
             }
         }
 
@@ -104,31 +130,37 @@ impl ConfigWatcher {
             debug!(target: "industry_vis::config_watcher", "检测到文件变更: {:?}", path);
 
             // 检查是否是应用配置文件
-            if let Some(app_path) = app_config_path {
-                if path == app_path {
-                    info!(target: "industry_vis::config_watcher", "应用配置已变更，重新加载");
-                    match AppConfig::load() {
-                        Ok(new_config) => {
-                            *app_config.write() = new_config;
-                            info!(target: "industry_vis::config_watcher", "应用配置重新加载成功");
-                        }
-                        Err(e) => {
-                            warn!(target: "industry_vis::config_watcher", "重新加载应用配置失败: {}", e);
-                        }
+            if let Some(app_path) = app_config_path
+                && path == app_path
+            {
+                info!(target: "industry_vis::config_watcher", "应用配置已变更，重新加载");
+                match AppConfig::load() {
+                    Ok(new_config) => {
+                        *app_config.write() = new_config;
+                        info!(target: "industry_vis::config_watcher", "应用配置重新加载成功");
+                        Self::emit_config_change("app", true, None);
+                    }
+                    Err(e) => {
+                        let err_msg = format!("{}", e);
+                        warn!(target: "industry_vis::config_watcher", "重新加载应用配置失败: {}", e);
+                        Self::emit_config_change("app", false, Some(err_msg));
                     }
                 }
             }
 
             // 检查是否是分组配置文件
-            if let Some(tg_path) = tag_group_path {
-                if path == tg_path {
-                    info!(target: "industry_vis::config_watcher", "分组配置已变更，重新加载");
-                    let mut manager = tag_group_manager.write();
-                    if let Err(e) = manager.reload() {
-                        warn!(target: "industry_vis::config_watcher", "重新加载分组配置失败: {}", e);
-                    } else {
-                        info!(target: "industry_vis::config_watcher", "分组配置重新加载成功");
-                    }
+            if let Some(tg_path) = tag_group_path
+                && path == tg_path
+            {
+                info!(target: "industry_vis::config_watcher", "分组配置已变更，重新加载");
+                let mut manager = tag_group_manager.write();
+                if let Err(e) = manager.reload() {
+                    let err_msg = format!("{}", e);
+                    warn!(target: "industry_vis::config_watcher", "重新加载分组配置失败: {}", e);
+                    Self::emit_config_change("tag_groups", false, Some(err_msg));
+                } else {
+                    info!(target: "industry_vis::config_watcher", "分组配置重新加载成功");
+                    Self::emit_config_change("tag_groups", true, None);
                 }
             }
         }

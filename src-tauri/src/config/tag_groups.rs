@@ -41,18 +41,16 @@ impl TagGroupConfigManager {
             .ok()
             .and_then(|p| p.parent().map(|d| d.to_path_buf()))
             .map(|d| d.join(Self::LEGACY_CONFIG_FILENAME))
+            && path.exists()
         {
-            if path.exists() {
-                return Some(path);
-            }
+            return Some(path);
         }
         // 然后检查 AppData 目录
         if let Some(path) =
             dirs::config_dir().map(|d| d.join("IndustryVis").join(Self::LEGACY_CONFIG_FILENAME))
+            && path.exists()
         {
-            if path.exists() {
-                return Some(path);
-            }
+            return Some(path);
         }
         None
     }
@@ -60,17 +58,17 @@ impl TagGroupConfigManager {
     /// 获取配置文件路径
     pub fn config_path() -> AppResult<PathBuf> {
         // 优先检查 exe 同目录是否已有配置（便携模式）
-        if let Some(portable_path) = Self::portable_config_path() {
-            if portable_path.exists() {
-                return Ok(portable_path);
-            }
+        if let Some(portable_path) = Self::portable_config_path()
+            && portable_path.exists()
+        {
+            return Ok(portable_path);
         }
 
         // 检查 AppData 是否已有配置
-        if let Some(appdata_path) = Self::appdata_config_path() {
-            if appdata_path.exists() {
-                return Ok(appdata_path);
-            }
+        if let Some(appdata_path) = Self::appdata_config_path()
+            && appdata_path.exists()
+        {
+            return Ok(appdata_path);
         }
 
         // 都不存在时，默认使用 exe 同目录
@@ -81,13 +79,13 @@ impl TagGroupConfigManager {
     /// 获取保存配置的路径
     fn save_config_path() -> AppResult<PathBuf> {
         // 优先尝试 exe 同目录（便携模式）
-        if let Some(portable_path) = Self::portable_config_path() {
-            if let Some(parent) = portable_path.parent() {
-                let test_file = parent.join(".tag_groups_write_test");
-                if fs::write(&test_file, "test").is_ok() {
-                    let _ = fs::remove_file(&test_file);
-                    return Ok(portable_path);
-                }
+        if let Some(portable_path) = Self::portable_config_path()
+            && let Some(parent) = portable_path.parent()
+        {
+            let test_file = parent.join(".tag_groups_write_test");
+            if fs::write(&test_file, "test").is_ok() {
+                let _ = fs::remove_file(&test_file);
+                return Ok(portable_path);
             }
         }
 
@@ -191,11 +189,13 @@ impl TagGroupConfigManager {
                 let charts = if g.tags.is_empty() {
                     vec![ChartConfig::new("默认图表".to_string())]
                 } else {
-                    vec![ChartConfig::with_id(
-                        format!("c{}", Local::now().timestamp_millis()),
-                        "默认图表".to_string(),
-                    )
-                    .with_tags(g.tags)]
+                    vec![
+                        ChartConfig::with_id(
+                            format!("c{}", Local::now().timestamp_millis()),
+                            "默认图表".to_string(),
+                        )
+                        .with_tags(g.tags),
+                    ]
                 };
 
                 let mut group = TagGroup::with_id(g.id, g.name, charts, g.created_at, g.updated_at);

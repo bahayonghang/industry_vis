@@ -3,10 +3,15 @@
 //! 提供配置加载、保存、热更新功能。
 
 mod app;
+mod performance;
 mod tag_groups;
 mod watcher;
 
 pub use app::{AppConfig, DatabaseConfig, QueryConfig, SchemaConfig};
+pub use performance::{
+    CachePerformanceConfig, ChartPerformanceConfig, PerformanceConfig, PoolPerformanceConfig,
+    ProcessingPerformanceConfig,
+};
 pub use tag_groups::TagGroupConfigManager;
 pub use watcher::ConfigWatcher;
 
