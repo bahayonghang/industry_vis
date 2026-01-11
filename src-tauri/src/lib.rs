@@ -27,10 +27,65 @@ pub mod state;
 
 use commands::*;
 use state::AppState;
+use std::io::{Read, Write};
+use std::net::{TcpStream, ToSocketAddrs};
 use std::sync::Arc;
-use tauri::{async_runtime, Manager, RunEvent};
+use std::time::Duration;
+use tauri::{async_runtime, Manager, RunEvent, Url};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tokio::sync::RwLock;
 use tracing::info;
+
+fn check_dev_server_status(dev_url: &Url) -> Option<String> {
+    let host = dev_url.host_str()?;
+    let port = dev_url.port_or_known_default()?;
+    let addrs = (host, port).to_socket_addrs().ok()?;
+    let mut stream = None;
+
+    for addr in addrs {
+        if let Ok(s) = TcpStream::connect_timeout(&addr, Duration::from_millis(800)) {
+            stream = Some(s);
+            break;
+        }
+    }
+
+    let mut stream = match stream {
+        Some(s) => s,
+        None => {
+            return Some(format!(
+                "开发端口 {} 无法访问，可能被占用或开发服务器未启动。\n请确认 Vite 已启动且端口一致。",
+                port
+            ))
+        }
+    };
+
+    let _ = stream.set_read_timeout(Some(Duration::from_millis(800)));
+    let _ = stream.set_write_timeout(Some(Duration::from_millis(800)));
+
+    let path = if dev_url.path().is_empty() { "/" } else { dev_url.path() };
+    let request = format!(
+        "GET {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n",
+        path, host
+    );
+    if stream.write_all(request.as_bytes()).is_err() {
+        return Some(format!(
+            "无法与开发端口 {} 建立有效通信，可能被占用或开发服务器未启动。",
+            port
+        ));
+    }
+
+    let mut buf = [0u8; 2048];
+    let n = stream.read(&mut buf).unwrap_or(0);
+    let text = String::from_utf8_lossy(&buf[..n]);
+    if !text.contains("@vite/client") {
+        return Some(format!(
+            "开发端口 {} 已响应但不是 Vite 开发服务器，可能被占用。\n请检查 Vite 输出确认实际端口。",
+            port
+        ));
+    }
+
+    None
+}
 
 /// 应用入口
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -61,6 +116,26 @@ pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            // 开发环境检查 devUrl 端口占用情况并提示
+            if cfg!(debug_assertions) {
+                if let Some(dev_url) = app.config().build.dev_url.clone() {
+                    let handle = app.handle().clone();
+                    std::thread::spawn(move || {
+                        std::thread::sleep(Duration::from_millis(1200));
+                        if let Some(message) = check_dev_server_status(&dev_url) {
+                            handle
+                                .dialog()
+                                .message(message)
+                                .kind(MessageDialogKind::Warning)
+                                .buttons(MessageDialogButtons::Ok)
+                                .show(|_| {});
+                        }
+                    });
+                }
+            }
+            Ok(())
+        })
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             // 配置相关
