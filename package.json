@@ -12,7 +12,7 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "lint": "eslint --fix",
-    "test": "vitest",
+    "test": "vitest --passWithNoTests",
     "test:e2e": "playwright test"
   },
   "dependencies": {
