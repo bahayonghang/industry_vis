@@ -57,12 +57,11 @@ pub fn resample_data(records: Vec<HistoryRecord>, interval: u32) -> AppResult<Ve
             }
         } else if let Ok(dt) =
             chrono::NaiveDateTime::parse_from_str(&record.date_time, "%Y-%m-%dT%H:%M:%S")
+            && let Some(local_dt) = Local.from_local_datetime(&dt).single()
         {
-            if let Some(local_dt) = Local.from_local_datetime(&dt).single() {
-                let timestamp_ms = local_dt.timestamp_millis();
-                let window_key = (timestamp_ms / interval_ms) * interval_ms;
-                windows.entry(window_key).or_default().push(record);
-            }
+            let timestamp_ms = local_dt.timestamp_millis();
+            let window_key = (timestamp_ms / interval_ms) * interval_ms;
+            windows.entry(window_key).or_default().push(record);
         }
     }
 
@@ -210,7 +209,7 @@ mod tests {
     fn test_resample_data() {
         let records = create_test_records(10);
         let result = resample_data(records, 120).unwrap(); // 2分钟间隔
-                                                           // 10分钟数据，2分钟间隔，应该约5个点
+        // 10分钟数据，2分钟间隔，应该约5个点
         assert!(result.len() <= 6);
     }
 

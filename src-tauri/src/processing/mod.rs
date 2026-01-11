@@ -141,15 +141,15 @@ fn parse_timestamp_ms(date_time: &str) -> Option<f64> {
     use chrono::{Local, TimeZone};
 
     // 尝试多种格式
-    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(date_time, "%Y-%m-%dT%H:%M:%S%.3f") {
-        if let Some(local_dt) = Local.from_local_datetime(&dt).single() {
-            return Some(local_dt.timestamp_millis() as f64);
-        }
+    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(date_time, "%Y-%m-%dT%H:%M:%S%.3f")
+        && let Some(local_dt) = Local.from_local_datetime(&dt).single()
+    {
+        return Some(local_dt.timestamp_millis() as f64);
     }
-    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(date_time, "%Y-%m-%dT%H:%M:%S") {
-        if let Some(local_dt) = Local.from_local_datetime(&dt).single() {
-            return Some(local_dt.timestamp_millis() as f64);
-        }
+    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(date_time, "%Y-%m-%dT%H:%M:%S")
+        && let Some(local_dt) = Local.from_local_datetime(&dt).single()
+    {
+        return Some(local_dt.timestamp_millis() as f64);
     }
     None
 }

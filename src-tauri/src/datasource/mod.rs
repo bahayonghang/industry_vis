@@ -8,7 +8,7 @@ mod schema_profile;
 mod sqlserver;
 mod traits;
 
-pub use pool::{ConnectionManager, ConnectionPool, PoolConfig};
+pub use pool::{ConnectionManager, ConnectionPool, PoolConfig, PoolState};
 pub use profiles::{DefaultProfile, ProfileRegistry};
 pub use schema_profile::SchemaProfile;
 pub use sqlserver::SqlServerSource;

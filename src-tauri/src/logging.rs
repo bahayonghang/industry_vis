@@ -12,23 +12,23 @@ use tracing_appender::{
     rolling::{RollingFileAppender, Rotation},
 };
 use tracing_subscriber::{
+    EnvFilter, Layer,
     fmt::{self, format::FmtSpan},
     layer::SubscriberExt,
     util::SubscriberInitExt,
-    EnvFilter, Layer,
 };
 
 /// 获取日志根目录路径
 /// 优先使用 exe 同目录的 logs，否则使用 AppData
 pub fn get_log_dir() -> PathBuf {
     // 优先使用便携模式（exe 同目录）
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(exe_dir) = exe_path.parent() {
-            let portable_logs = exe_dir.join("logs");
-            // 尝试创建目录，如果成功则使用便携模式
-            if fs::create_dir_all(&portable_logs).is_ok() {
-                return portable_logs;
-            }
+    if let Ok(exe_path) = std::env::current_exe()
+        && let Some(exe_dir) = exe_path.parent()
+    {
+        let portable_logs = exe_dir.join("logs");
+        // 尝试创建目录，如果成功则使用便携模式
+        if fs::create_dir_all(&portable_logs).is_ok() {
+            return portable_logs;
         }
     }
 
@@ -68,16 +68,16 @@ fn cleanup_old_logs(log_dir: &PathBuf, prefix: &str, max_days: u32) {
                 // 检查是否是目标日志文件
                 if filename.starts_with(prefix) && filename.ends_with(".log") {
                     // 获取文件修改时间
-                    if let Ok(metadata) = fs::metadata(&path) {
-                        if let Ok(modified) = metadata.modified() {
-                            let modified_time: chrono::DateTime<chrono::Local> = modified.into();
-                            let age = now.signed_duration_since(modified_time);
+                    if let Ok(metadata) = fs::metadata(&path)
+                        && let Ok(modified) = metadata.modified()
+                    {
+                        let modified_time: chrono::DateTime<chrono::Local> = modified.into();
+                        let age = now.signed_duration_since(modified_time);
 
-                            // 删除超过 max_days 天的日志
-                            if age.num_days() > max_days as i64 {
-                                let _ = fs::remove_file(&path);
-                                println!("[LOG] 清理过期日志: {}", filename);
-                            }
+                        // 删除超过 max_days 天的日志
+                        if age.num_days() > max_days as i64 {
+                            let _ = fs::remove_file(&path);
+                            println!("[LOG] 清理过期日志: {}", filename);
                         }
                     }
                 }

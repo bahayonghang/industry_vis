@@ -74,16 +74,14 @@ impl QueryService {
         );
 
         // 检查缓存（非强制刷新时）
-        if !force_refresh {
-            if let Some(cached_records) = self.cache.get(&cache_key).await {
-                info!(target: "industry_vis::query_service",
-                    "缓存命中，返回 {} 条记录", cached_records.len()
-                );
+        if !force_refresh && let Some(cached_records) = self.cache.get(&cache_key).await {
+            info!(target: "industry_vis::query_service",
+                "缓存命中，返回 {} 条记录", cached_records.len()
+            );
 
-                let total = cached_records.len();
-                let records = apply_pagination(cached_records, params.offset, params.limit);
-                return Ok(QueryResult { records, total });
-            }
+            let total = cached_records.len();
+            let records = apply_pagination(cached_records, params.offset, params.limit);
+            return Ok(QueryResult { records, total });
         }
 
         // 从数据库查询
@@ -132,25 +130,23 @@ impl QueryService {
         );
 
         // 检查缓存
-        if !force_refresh {
-            if let Some(cached_records) = self.cache.get(&cache_key).await {
-                let query_time_ms = start_time.elapsed().as_millis() as u64;
-                let total_processed = cached_records.len();
+        if !force_refresh && let Some(cached_records) = self.cache.get(&cache_key).await {
+            let query_time_ms = start_time.elapsed().as_millis() as u64;
+            let total_processed = cached_records.len();
 
-                info!(target: "industry_vis::query_service",
-                    "缓存命中 V2，返回 {} 条记录，耗时 {}ms",
-                    total_processed, query_time_ms
-                );
+            info!(target: "industry_vis::query_service",
+                "缓存命中 V2，返回 {} 条记录，耗时 {}ms",
+                total_processed, query_time_ms
+            );
 
-                let series = processing::records_to_series(&cached_records);
-                return Ok(QueryResultV2 {
-                    series,
-                    total_raw: total_processed,
-                    total_processed,
-                    cache_hit: true,
-                    query_time_ms,
-                });
-            }
+            let series = processing::records_to_series(&cached_records);
+            return Ok(QueryResultV2 {
+                series,
+                total_raw: total_processed,
+                total_processed,
+                cache_hit: true,
+                query_time_ms,
+            });
         }
 
         // 从数据库查询

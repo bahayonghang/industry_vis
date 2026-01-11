@@ -20,6 +20,7 @@ use crate::models::HistoryRecord;
 ///
 /// 支持通过 `SchemaProfile` 配置不同厂商的数据库结构。
 /// 默认使用 `DefaultProfile`。
+#[derive(Clone)]
 pub struct SqlServerSource {
     pool: Arc<ConnectionPool>,
     metadata: SourceMetadata,
@@ -118,7 +119,7 @@ impl DataSource for SqlServerSource {
         let mut conn = self.pool.get().await?;
 
         let query = Query::new(
-            "SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'"
+            "SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'",
         );
 
         let stream = query

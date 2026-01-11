@@ -47,9 +47,9 @@ impl PoolConfig {
     /// 创建适合桌面应用的配置
     pub fn for_desktop() -> Self {
         Self {
-            max_size: 1,
+            max_size: 3, // 支持并发查询（多图表场景）
             min_idle: Some(1),
-            connection_timeout_secs: 30,
+            connection_timeout_secs: 15,  // 缩短超时，快速失败
             idle_timeout_secs: Some(300), // 5 分钟
             max_lifetime_secs: Some(900), // 15 分钟
         }
@@ -130,6 +130,7 @@ impl bb8::ManageConnection for ConnectionManager {
 pub struct ConnectionPool {
     pool: Pool<ConnectionManager>,
     config: DatabaseConfig,
+    max_size: u32,
 }
 
 impl ConnectionPool {
@@ -165,6 +166,7 @@ impl ConnectionPool {
         Ok(Self {
             pool,
             config: db_config,
+            max_size: pool_config.max_size,
         })
     }
 
@@ -187,6 +189,8 @@ impl ConnectionPool {
         PoolState {
             connections: state.connections,
             idle_connections: state.idle_connections,
+            active_connections: state.connections.saturating_sub(state.idle_connections),
+            max_size: self.max_size,
         }
     }
 
@@ -197,12 +201,16 @@ impl ConnectionPool {
 }
 
 /// 连接池状态
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct PoolState {
     /// 总连接数
     pub connections: u32,
     /// 空闲连接数
     pub idle_connections: u32,
+    /// 活跃连接数（总连接数 - 空闲连接数）
+    pub active_connections: u32,
+    /// 最大连接数
+    pub max_size: u32,
 }
 
 /// 可共享的连接池（用于 Tauri 状态）
@@ -223,7 +231,8 @@ mod tests {
     #[test]
     fn test_pool_config_desktop() {
         let config = PoolConfig::for_desktop();
-        assert_eq!(config.max_size, 1);
+        assert_eq!(config.max_size, 3); // 优化后支持并发查询
+        assert_eq!(config.connection_timeout_secs, 15); // 快速失败策略
     }
 
     #[test]

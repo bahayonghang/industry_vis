@@ -100,7 +100,9 @@ pub fn dataframe_to_records(df: &DataFrame) -> AppResult<Vec<HistoryRecord>> {
     Ok(records)
 }
 
-/// 使用 Polars lazy API 处理数据
+/// 使用 Polars lazy API 处理数据（统一 LazyFrame 管道优化版）
+///
+/// 利用 Polars 查询优化器（投影下推、谓词下推）提升处理效率
 pub fn process_data_polars(
     records: Vec<HistoryRecord>,
     config: &DataProcessingConfig,
@@ -109,7 +111,111 @@ pub fn process_data_polars(
         return Ok(records);
     }
 
-    // 按标签分组处理
+    // 转换为 DataFrame，使用统一管道处理所有标签
+    let df = records_to_dataframe(&records)?;
+
+    // 使用统一 LazyFrame 管道，让 Polars 优化器自动优化执行计划
+    let result_df = process_unified_pipeline(df, config)?;
+
+    // 转换回记录并按时间排序
+    let mut result = dataframe_to_records(&result_df)?;
+    result.sort_by(|a, b| a.date_time.cmp(&b.date_time));
+
+    debug!(target: "industry_vis::processing",
+        "统一管道处理完成: {} 条输入 -> {} 条输出", records.len(), result.len());
+
+    Ok(result)
+}
+
+/// 统一 LazyFrame 处理管道
+///
+/// 在单个 LazyFrame 中处理所有标签，充分利用 Polars 优化器
+fn process_unified_pipeline(df: DataFrame, config: &DataProcessingConfig) -> AppResult<DataFrame> {
+    let mut lf = df.lazy();
+
+    // 1. 异常值剔除（按标签分组计算统计量）
+    if config.outlier_removal.enabled {
+        lf = remove_outliers_by_group(lf)?;
+    }
+
+    // 2. 平滑滤波（按标签分组应用滚动窗口）
+    if config.smoothing.enabled && config.smoothing.window > 1 {
+        lf = smooth_by_group(lf, config.smoothing.window)?;
+    }
+
+    // 收集中间结果
+    let intermediate_df = lf
+        .collect()
+        .map_err(|e| AppError::DataProcessing(format!("Polars 管道执行失败: {}", e)))?;
+
+    // 3. 重采样（需要在收集后处理，因为涉及时间分桶）
+    let final_df = if config.resample.enabled && config.resample.interval > 0 {
+        resample_data_polars(&intermediate_df, config.resample.interval)?
+    } else {
+        intermediate_df
+    };
+
+    Ok(final_df)
+}
+
+/// 按标签分组的 3σ 异常值剔除
+///
+/// 在每个标签组内独立计算均值和标准差，过滤异常值
+fn remove_outliers_by_group(lf: LazyFrame) -> AppResult<LazyFrame> {
+    // 使用 over() 窗口函数按标签分组计算统计量
+    let result = lf
+        .with_columns([
+            col("tag_val").mean().over([col("tag_name")]).alias("_mean"),
+            col("tag_val").std(1).over([col("tag_name")]).alias("_std"),
+        ])
+        .filter(
+            col("tag_val")
+                .gt_eq(col("_mean") - lit(3.0) * col("_std"))
+                .and(col("tag_val").lt_eq(col("_mean") + lit(3.0) * col("_std"))),
+        )
+        .select([
+            col("datetime"),
+            col("tag_name"),
+            col("tag_val"),
+            col("tag_quality"),
+        ]);
+
+    Ok(result)
+}
+
+/// 按标签分组的移动平均平滑
+///
+/// 在每个标签组内独立应用滚动窗口
+fn smooth_by_group(lf: LazyFrame, window: usize) -> AppResult<LazyFrame> {
+    let options = RollingOptionsFixedWindow {
+        window_size: window,
+        min_periods: 1,
+        center: true,
+        ..Default::default()
+    };
+
+    // 先按标签和时间排序，然后在每个标签组内应用滚动平均
+    let result = lf
+        .sort(["tag_name", "datetime"], Default::default())
+        .with_columns([col("tag_val")
+            .rolling_mean(options)
+            .over([col("tag_name")])
+            .alias("tag_val")]);
+
+    Ok(result)
+}
+
+/// 保留原有的逐标签处理函数作为回退选项
+#[allow(dead_code)]
+pub fn process_data_polars_legacy(
+    records: Vec<HistoryRecord>,
+    config: &DataProcessingConfig,
+) -> AppResult<Vec<HistoryRecord>> {
+    if records.is_empty() {
+        return Ok(records);
+    }
+
+    // 按标签分组处理（原有实现）
     let mut tag_groups: HashMap<String, Vec<HistoryRecord>> = HashMap::new();
     for record in records {
         tag_groups
@@ -126,12 +232,10 @@ pub fn process_data_polars(
             Err(e) => {
                 warn!(target: "industry_vis::processing",
                     "Polars 处理标签 {} 失败: {}", tag_name, e);
-                // 回退时跳过该标签
             }
         }
     }
 
-    // 按时间排序
     all_results.sort_by(|a, b| a.date_time.cmp(&b.date_time));
 
     Ok(all_results)
@@ -235,15 +339,15 @@ fn resample_data_polars(df: &DataFrame, interval_seconds: u32) -> AppResult<Data
 fn parse_timestamp_ms(date_time: &str) -> Option<i64> {
     use chrono::{Local, TimeZone};
 
-    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(date_time, "%Y-%m-%dT%H:%M:%S%.3f") {
-        if let Some(local_dt) = Local.from_local_datetime(&dt).single() {
-            return Some(local_dt.timestamp_millis());
-        }
+    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(date_time, "%Y-%m-%dT%H:%M:%S%.3f")
+        && let Some(local_dt) = Local.from_local_datetime(&dt).single()
+    {
+        return Some(local_dt.timestamp_millis());
     }
-    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(date_time, "%Y-%m-%dT%H:%M:%S") {
-        if let Some(local_dt) = Local.from_local_datetime(&dt).single() {
-            return Some(local_dt.timestamp_millis());
-        }
+    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(date_time, "%Y-%m-%dT%H:%M:%S")
+        && let Some(local_dt) = Local.from_local_datetime(&dt).single()
+    {
+        return Some(local_dt.timestamp_millis());
     }
     None
 }
