@@ -288,18 +288,38 @@ function formatTime(timestamp: string): string {
 </template>
 
 <style scoped>
+/* ===== 赛博朋克主页样式 ===== */
 .home-view {
-  padding: 24px;
+  padding: 28px;
   height: 100%;
   overflow-y: auto;
-  animation: fadeIn 0.3s ease-out;
+  animation: cyber-fade-in 0.5s var(--ease-cyber) forwards;
+  position: relative;
+}
+
+/* 网格背景 */
+.home-view::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    linear-gradient(rgba(0, 245, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  position: relative;
+  z-index: 1;
 }
 
 .page-header-left {
@@ -307,76 +327,144 @@ function formatTime(timestamp: string): string {
 }
 
 .page-version {
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 13px;
-  color: var(--text-muted);
-  background: var(--glass-bg);
-  padding: 4px 10px;
-  border-radius: 4px;
-  border: 1px solid var(--border-color);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  color: var(--neon-cyan);
+  background: rgba(0, 245, 255, 0.08);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0, 245, 255, 0.25);
+  text-transform: uppercase;
+  box-shadow: 0 0 10px var(--neon-cyan-glow);
 }
 
 .page-title {
-  margin: 0 0 8px 0;
-  font-size: 28px;
-  font-weight: 600;
+  margin: 0 0 10px 0;
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-wider);
   color: var(--text-primary);
+  text-shadow: 0 0 20px var(--neon-cyan-glow);
 }
 
 .page-subtitle {
   margin: 0;
-  font-size: 14px;
-  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  letter-spacing: var(--tracking-wide);
 }
 
 .status-section {
-  margin-bottom: 32px;
+  margin-bottom: 36px;
+  position: relative;
+  z-index: 1;
 }
 
 .stat-card {
   height: 100%;
+  position: relative;
+}
+
+/* 统计卡片顶部霓虹条 */
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+  opacity: 0.7;
 }
 
 .stat-card :deep(.n-statistic-value) {
-  font-size: 18px;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px var(--neon-cyan-glow);
+}
+
+.stat-card :deep(.n-statistic-label) {
+  font-family: var(--font-body);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  font-size: var(--text-xs);
 }
 
 .stat-detail {
-  margin-top: 8px;
-  font-size: 12px;
+  margin-top: 10px;
+  font-size: var(--text-xs);
   color: var(--text-muted);
-  font-family: 'Consolas', monospace;
+  font-family: var(--font-mono);
+  letter-spacing: var(--tracking-wide);
 }
-
 
 .groups-section {
   flex: 1;
+  position: relative;
+  z-index: 1;
 }
 
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .section-title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 标题前的霓虹装饰 */
+.section-title::before {
+  content: '//';
+  color: var(--neon-cyan);
+  font-family: var(--font-mono);
+  opacity: 0.6;
 }
 
 .group-card {
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
-  padding: 16px;
+  padding: 18px;
+  position: relative;
+}
+
+/* 分组卡片角落装饰 */
+.group-card::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 16px;
+  height: 16px;
+  border-top: 2px solid var(--neon-cyan);
+  border-right: 2px solid var(--neon-cyan);
+  opacity: 0.4;
+  transition: opacity var(--transition-fast);
+}
+
+.group-card:hover::after {
+  opacity: 0.8;
 }
 
 .group-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: var(--glass-shadow-hover);
 }
 
 .group-content {
@@ -387,19 +475,22 @@ function formatTime(timestamp: string): string {
 .group-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .group-icon {
-  color: var(--primary-color);
+  color: var(--neon-cyan);
   flex-shrink: 0;
+  filter: drop-shadow(0 0 6px var(--neon-cyan-glow));
 }
 
 .group-name {
   margin: 0;
-  font-size: 16px;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -409,67 +500,85 @@ function formatTime(timestamp: string): string {
 .group-info {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 12px;
+  gap: 18px;
+  margin-bottom: 14px;
 }
 
 .info-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   color: var(--text-muted);
+  letter-spacing: var(--tracking-wide);
 }
 
 .group-charts {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 .group-arrow {
-  color: var(--text-muted);
+  color: var(--neon-cyan);
   flex-shrink: 0;
-  margin-left: 12px;
+  margin-left: 14px;
+  opacity: 0.6;
+  transition: all var(--transition-fast);
+}
+
+.group-card:hover .group-arrow {
+  opacity: 1;
+  transform: translateX(4px);
 }
 
 .group-card-new {
   justify-content: center;
-  min-height: 140px;
-  border: 2px dashed var(--border-color);
+  min-height: 150px;
+  border: 2px dashed var(--border-default);
   background: transparent;
 }
 
 .group-card-new:hover {
-  border-color: var(--primary-color);
+  border-color: var(--neon-cyan);
   background: var(--bg-hover);
+  box-shadow: 0 0 25px var(--neon-cyan-glow);
 }
 
 .new-group-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: var(--text-muted);
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-wide);
 }
 
 .add-icon {
   opacity: 0.5;
+  transition: all var(--transition-normal);
 }
 
 .group-card-new:hover .add-icon {
   opacity: 1;
-  color: var(--primary-color);
+  color: var(--neon-cyan);
+  filter: drop-shadow(0 0 8px var(--neon-cyan-glow));
+  transform: scale(1.1);
 }
 
-@keyframes fadeIn {
-  from { 
-    opacity: 0; 
-    transform: translateY(8px); 
+/* 赛博朋克入场动画 */
+@keyframes cyber-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+    filter: blur(8px);
   }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
   }
 }
 </style>

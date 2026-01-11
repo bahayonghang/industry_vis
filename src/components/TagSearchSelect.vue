@@ -159,94 +159,184 @@ const filteredResults = computed(() =>
 </template>
 
 <style scoped>
+/* ===== 赛博朋克标签搜索选择器 ===== */
 .tag-search-select {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+}
+
+/* 输入框霓虹聚焦效果 */
+.tag-search-select :deep(.n-input:focus-within) {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 12px var(--neon-cyan-glow);
 }
 
 .search-results {
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  position: relative;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   overflow: hidden;
+  background: var(--glass-bg);
+}
+
+/* 搜索结果顶部霓虹条 */
+.search-results::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--neon-cyan) 30%,
+    var(--neon-magenta) 70%,
+    transparent 100%
+  );
+  opacity: 0.6;
 }
 
 .results-header {
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 10px 14px;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
   color: var(--text-secondary);
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 245, 255, 0.05) 0%,
+    transparent 100%
+  );
+  border-bottom: 1px solid var(--border-default);
 }
 
 .results-count {
-  color: var(--text-muted);
+  font-family: var(--font-mono);
+  color: var(--neon-cyan);
 }
 
 .loading-state {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
-  color: var(--text-muted);
-  font-size: 13px;
+  gap: 10px;
+  padding: 18px;
+  color: var(--neon-cyan);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
 }
 
 .results-list {
-  padding: 4px;
+  padding: 6px;
 }
 
 .result-item {
-  padding: 8px 12px;
-  font-size: 13px;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  color: var(--neon-cyan);
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: background-color 0.15s;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
 }
 
 .result-item:hover:not(.disabled) {
   background: var(--bg-hover);
+  box-shadow: 0 0 10px var(--neon-cyan-glow);
 }
 
 .result-item.disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  color: var(--text-muted);
 }
 
 .selected-tags {
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 12px;
+  position: relative;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  background: var(--glass-bg);
+}
+
+/* 已选标签顶部霓虹条 */
+.selected-tags::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--neon-magenta) 30%,
+    var(--neon-cyan) 70%,
+    transparent 100%
+  );
+  opacity: 0.5;
 }
 
 .selected-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-size: 13px;
-  font-weight: 500;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
   color: var(--text-secondary);
 }
 
 .tag-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
   color: var(--text-muted);
   font-weight: normal;
+  padding: 2px 8px;
+  background: rgba(0, 245, 255, 0.08);
+  border-radius: var(--radius-sm);
 }
 
 .tag-count.warning {
-  color: #f59e0b;
+  color: var(--neon-orange);
+  background: rgba(255, 136, 0, 0.1);
 }
 
 .clear-all {
   margin-left: auto;
-  color: var(--accent-color);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--neon-red);
   cursor: pointer;
   font-weight: normal;
+  transition: all var(--transition-fast);
 }
 
 .clear-all:hover {
-  text-decoration: underline;
+  text-shadow: 0 0 8px var(--neon-red-glow);
+}
+
+/* 标签霓虹样式 */
+.selected-tags :deep(.n-tag) {
+  background: rgba(0, 245, 255, 0.08);
+  border: 1px solid rgba(0, 245, 255, 0.2);
+  color: var(--neon-cyan);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+}
+
+.selected-tags :deep(.n-tag:hover) {
+  background: rgba(0, 245, 255, 0.15);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 10px var(--neon-cyan-glow);
 }
 </style>

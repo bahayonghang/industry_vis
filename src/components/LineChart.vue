@@ -44,24 +44,24 @@ const loading = computed(() => dataStore.loading)
 // const queryTimeMs = computed(() => dataStore.queryTimeMs)
 // const totalProcessed = computed(() => dataStore.totalProcessed)
 
-// 工业风配色方案
+// 赛博朋克霓虹配色方案
 const colorPalette = [
-  '#3b82f6', // 蓝
-  '#22c55e', // 绿
-  '#f59e0b', // 橙
-  '#8b5cf6', // 紫
-  '#ec4899', // 粉
-  '#06b6d4', // 青
-  '#84cc16', // 黄绿
-  '#f97316', // 橙红
+  '#00f5ff', // 霓虹青
+  '#ff00ff', // 霓虹品红
+  '#ff8800', // 霓虹橙
+  '#00ff88', // 霓虹绿
+  '#ffee00', // 霓虹黄
+  '#0088ff', // 霓虹蓝
+  '#ff0055', // 霓虹红
+  '#aa00ff', // 霓虹紫
 ]
 
 const chartOption = computed(() => {
   const isDark = themeStore.isDark
-  
-  // 主题相关颜色
-  const textColor = isDark ? '#94a3b8' : '#64748b'
-  const borderColor = isDark ? '#334155' : '#e2e8f0'
+
+  // 赛博朋克主题颜色
+  const textColor = isDark ? '#8ba4b4' : '#475569'
+  const borderColor = isDark ? 'rgba(0, 245, 255, 0.15)' : 'rgba(0, 180, 196, 0.2)'
   const bgColor = 'transparent'
   
   // 根据接口版本选择数据源

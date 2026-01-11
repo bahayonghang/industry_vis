@@ -84,8 +84,36 @@ dataStore.setTimeRange(defaultStart, defaultEnd)
 </template>
 
 <style scoped>
+/* ===== 赛博朋克时间范围选择器 ===== */
 .label {
-  font-size: 14px;
-  color: #666;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-secondary);
+}
+
+/* 选择器霓虹效果 */
+:deep(.n-select .n-base-selection) {
+  transition: all var(--transition-fast);
+}
+
+:deep(.n-select .n-base-selection:focus-within) {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 12px var(--neon-cyan-glow);
+}
+
+:deep(.n-select .n-base-selection:hover) {
+  border-color: rgba(0, 245, 255, 0.4);
+}
+
+/* 日期选择器霓虹效果 */
+:deep(.n-date-picker .n-input:focus-within) {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 12px var(--neon-cyan-glow);
+}
+
+:deep(.n-date-picker .n-input:hover) {
+  border-color: rgba(0, 245, 255, 0.4);
 }
 </style>

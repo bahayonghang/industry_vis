@@ -588,99 +588,163 @@ async function handleDelete() {
 </template>
 
 <style scoped>
+/* ===== 赛博朋克分组编辑视图 ===== */
 .group-edit-view {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 16px;
-  gap: 12px;
+  padding: 20px;
+  gap: 16px;
   background: var(--bg-base);
+  position: relative;
+  animation: cyber-fade-in 0.5s var(--ease-cyber) forwards;
 }
 
+/* 网格背景 */
+.group-edit-view::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    linear-gradient(rgba(0, 245, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 编辑头部 */
 .edit-header {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-radius: var(--radius-lg);
+  padding: 14px 20px;
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-default);
+}
+
+/* 头部顶部霓虹条 */
+.edit-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+  opacity: 0.7;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   flex: 1;
 }
 
 .name-input {
-  max-width: 300px;
-  font-size: 16px;
-  font-weight: 500;
+  max-width: 320px;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
 }
 
 .name-input :deep(.n-input__input-el) {
-  font-size: 16px;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
+/* 时间工具栏 */
 .time-toolbar {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
-  border-radius: var(--radius-lg);
+  padding: 12px 20px;
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-default);
 }
 
 .toolbar-icon {
-  color: var(--text-muted);
+  color: var(--neon-cyan);
+  filter: drop-shadow(0 0 4px var(--neon-cyan-glow));
 }
 
 /* 图表管理区域 */
 .charts-section {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .charts-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 4px;
+  padding: 0 6px;
 }
 
 .charts-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
   color: var(--text-primary);
 }
 
+/* 标题前的霓虹装饰 */
+.charts-title::before {
+  content: '//';
+  color: var(--neon-cyan);
+  font-family: var(--font-mono);
+  opacity: 0.6;
+}
+
 .chart-count {
-  font-weight: normal;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
   color: var(--text-muted);
-  padding: 2px 8px;
-  background: var(--glass-bg);
-  border-radius: 10px;
+  padding: 4px 12px;
+  background: rgba(0, 245, 255, 0.08);
+  border: 1px solid rgba(0, 245, 255, 0.15);
+  border-radius: var(--radius-sm);
 }
 
 .chart-count.warning {
-  color: var(--industrial-orange);
+  color: var(--neon-orange);
+  background: rgba(255, 136, 0, 0.1);
+  border-color: rgba(255, 136, 0, 0.3);
 }
 
 .charts-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 18px;
 }
 
 @media (max-width: 1200px) {
@@ -689,103 +753,157 @@ async function handleDelete() {
   }
 }
 
-/* 添加图表按钮 */
+/* 添加图表按钮 - 赛博朋克风格 */
 .add-chart-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
   min-height: 180px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 2px dashed var(--glass-border);
-  border-radius: 16px;
+  background: transparent;
+  border: 2px dashed var(--border-default);
+  border-radius: var(--radius-xl);
   cursor: pointer;
   transition: all var(--transition-normal);
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 .add-chart-btn:hover {
-  background: var(--glass-bg-hover);
-  border-color: var(--industrial-blue);
-  color: var(--industrial-blue);
-  transform: translateY(-2px);
+  background: var(--bg-hover);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+  transform: translateY(-3px);
+  box-shadow: 0 0 25px var(--neon-cyan-glow);
 }
 
 .add-chart-btn-icon {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--border-default);
   transition: all var(--transition-normal);
 }
 
 .add-chart-btn:hover .add-chart-btn-icon {
-  background: var(--industrial-blue);
-  border-color: var(--industrial-blue);
-  color: white;
+  background: var(--neon-cyan);
+  border-color: var(--neon-cyan);
+  color: var(--bg-base);
   transform: scale(1.1);
+  box-shadow: var(--glow-cyan);
 }
 
 .add-chart-btn-text {
-  font-size: 14px;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
 }
 
 /* 数据处理面板 */
 .processing-panel {
-  border-radius: var(--radius-lg);
+  position: relative;
+  z-index: 1;
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  border: 1px solid var(--border-default);
+}
+
+/* 面板顶部霓虹条 */
+.processing-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--neon-magenta), var(--neon-cyan));
+  opacity: 0.6;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .processing-panel :deep(.n-card-header) {
-  padding: 10px 16px;
+  padding: 12px 18px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 0, 255, 0.03) 0%,
+    rgba(0, 245, 255, 0.03) 100%
+  );
 }
 
 .panel-title {
-  font-size: 14px;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-primary);
 }
 
 .processing-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
+  gap: 28px;
   align-items: center;
+  padding: 4px 0;
 }
 
 .option-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .option-label {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
 }
 
 .option-unit {
   color: var(--text-muted);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
 }
 
 .option-hint {
   color: var(--text-muted);
-  font-size: 12px;
-  opacity: 0.8;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  opacity: 0.7;
 }
 
+/* 图表容器 */
 .chart-container {
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-height: 400px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   overflow: hidden;
+  background: var(--glass-bg);
+  border: 1px solid var(--border-default);
+}
+
+/* 图表容器顶部霓虹条 */
+.chart-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--neon-cyan) 0%,
+    var(--neon-magenta) 50%,
+    var(--neon-orange) 100%
+  );
+  opacity: 0.8;
+  z-index: 1;
 }
 
 .empty-chart {
@@ -800,31 +918,49 @@ async function handleDelete() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
   color: var(--text-muted);
 }
 
 .empty-icon {
   opacity: 0.3;
+  color: var(--neon-cyan);
 }
 
 .empty-content p {
   margin: 0;
-  font-size: 14px;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
 }
 
 /* 查询状态指示器 */
 .query-status {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   margin-left: auto;
-  padding-left: 12px;
+  padding-left: 14px;
 }
 
 .query-time {
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
   color: var(--text-muted);
-  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* 赛博朋克入场动画 */
+@keyframes cyber-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
 }
 </style>

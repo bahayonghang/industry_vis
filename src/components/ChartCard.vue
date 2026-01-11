@@ -157,32 +157,79 @@ function handleKeydown(e: KeyboardEvent) {
 </template>
 
 <style scoped>
+/* ===== 赛博朋克图表卡片 ===== */
 .chart-card {
+  position: relative;
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
   box-shadow: var(--glass-shadow);
   overflow: hidden;
-  transition: 
+  transition:
     background var(--transition-normal),
     border-color var(--transition-normal),
     box-shadow var(--transition-normal),
     transform var(--transition-normal);
 }
 
+/* 顶部霓虹渐变条 */
+.chart-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--neon-cyan) 0%,
+    var(--neon-magenta) 50%,
+    var(--neon-orange) 100%
+  );
+  opacity: 0.8;
+  transition: opacity var(--transition-normal);
+}
+
+/* 角落装饰 */
+.chart-card::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 14px;
+  height: 14px;
+  border-top: 2px solid var(--neon-cyan);
+  border-right: 2px solid var(--neon-cyan);
+  opacity: 0.4;
+  transition: opacity var(--transition-fast);
+}
+
 .chart-card:hover {
   background: var(--glass-bg-hover);
-  border-color: var(--glass-border-hover);
+  border-color: var(--border-glow);
   box-shadow: var(--glass-shadow-hover);
-  transform: translateY(-3px);
+  transform: translateY(-4px);
+}
+
+.chart-card:hover::before {
+  opacity: 1;
+}
+
+.chart-card:hover::after {
+  opacity: 0.8;
 }
 
 .chart-card-header {
-  background: var(--gradient-header);
-  border-bottom: 1px solid var(--glass-border);
-  padding: 12px 16px;
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 245, 255, 0.05) 0%,
+    rgba(255, 0, 255, 0.03) 100%
+  );
+  border-bottom: 1px solid var(--border-default);
+  padding: 14px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -192,19 +239,23 @@ function handleKeydown(e: KeyboardEvent) {
 .chart-card-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
   color: var(--text-primary);
 }
 
+/* 标题前的霓虹指示条 */
 .chart-card-title::before {
   content: '';
   display: inline-block;
-  width: 4px;
+  width: 3px;
   height: 16px;
   border-radius: 2px;
-  background: var(--industrial-blue);
+  background: linear-gradient(180deg, var(--neon-cyan), var(--neon-magenta));
+  box-shadow: 0 0 8px var(--neon-cyan-glow);
   flex-shrink: 0;
 }
 
@@ -222,41 +273,47 @@ function handleKeydown(e: KeyboardEvent) {
 }
 
 .tag-count {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  padding: 2px 8px;
-  background: var(--glass-bg);
-  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted);
+  padding: 3px 10px;
+  background: rgba(0, 245, 255, 0.08);
+  border: 1px solid rgba(0, 245, 255, 0.15);
+  border-radius: var(--radius-sm);
 }
 
 .chart-card-body {
-  padding: 16px;
+  padding: 18px;
   min-height: 100px;
 }
 
 .tag-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
+/* 霓虹标签胶囊 */
 .tag-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  color: var(--text-secondary);
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  background: rgba(0, 245, 255, 0.08);
+  border: 1px solid rgba(0, 245, 255, 0.2);
+  color: var(--neon-cyan);
   transition: all var(--transition-fast);
 }
 
 .tag-pill:hover {
-  background: var(--glass-bg-hover);
-  border-color: var(--industrial-blue);
+  background: rgba(0, 245, 255, 0.15);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 12px var(--neon-cyan-glow);
 }
 
 .tag-name {
@@ -275,17 +332,35 @@ function handleKeydown(e: KeyboardEvent) {
   border-radius: 50%;
   cursor: pointer;
   transition: all var(--transition-fast);
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 .tag-pill-remove:hover {
-  background: var(--industrial-red);
+  background: var(--neon-red);
   color: white;
+  box-shadow: 0 0 8px var(--neon-red-glow);
 }
 
 .chart-card-footer {
-  padding: 8px 16px;
-  border-top: 1px solid var(--glass-border);
-  background: rgba(0, 0, 0, 0.02);
+  padding: 10px 18px;
+  border-top: 1px solid var(--border-default);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* 入场动画 */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.4s var(--ease-cyber) forwards;
+  opacity: 0;
 }
 </style>

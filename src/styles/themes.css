@@ -1,292 +1,157 @@
-/* ===== 主题变量定义 ===== */
-/* 注意：基础设计令牌已在 tokens.css 中定义 */
+/**
+ * 赛博朋克工业风主题系统 (Cyberpunk Industrial Theme System)
+ * 深邃暗色为主，霓虹强调色点缀
+ *
+ * 设计理念：
+ * - 暗色主导，减少视觉疲劳
+ * - 霓虹色彩作为功能性强调
+ * - 层次分明的深度感
+ */
 
-/* ===== 亮色主题 ===== */
-.light, :root:not(.dark) {
-  /* 背景色 */
-  --bg-base: #f8fafc;
+/* ===== 暗色主题 (默认 - 赛博朋克核心) ===== */
+:root, .dark {
+  /* 背景色 - 深邃层次 */
+  --bg-void: #05080f;
+  --bg-base: #0a0e1a;
+  --bg-elevated: #0f1629;
+  --bg-surface: #141b2d;
+  --bg-overlay: rgba(10, 14, 26, 0.95);
+  --bg-muted: #1a2340;
+  --bg-subtle: #243055;
+  --bg-hover: rgba(0, 245, 255, 0.08);
+  --bg-active: rgba(0, 245, 255, 0.12);
+
+  /* 文字色 - 冷色调层次 */
+  --text-primary: #e8f4f8;
+  --text-secondary: #8ba4b4;
+  --text-muted: #5a7080;
+  --text-tertiary: #4a5a68;
+  --text-inverse: #0a0e1a;
+  /* 使用硬编码 fallback 避免变量未定义问题 */
+  --text-neon: var(--neon-cyan, #00f5ff);
+
+  /* 边框色 - 微妙发光 */
+  --border-default: rgba(0, 245, 255, 0.15);
+  --border-muted: rgba(0, 245, 255, 0.08);
+  --border-emphasis: rgba(0, 245, 255, 0.25);
+  --border-glow: rgba(0, 245, 255, 0.4);
+  --border-color: rgba(0, 245, 255, 0.15);
+
+  /* 强调色 - 霓虹系统 (带 fallback) */
+  --accent-primary: var(--neon-cyan, #00f5ff);
+  --accent-primary-hover: var(--neon-cyan-dim, #00b8c4);
+  --accent-primary-glow: var(--neon-cyan-glow, rgba(0, 245, 255, 0.6));
+  --accent-secondary: var(--neon-magenta, #ff00ff);
+  --accent-success: var(--neon-green, #39ff14);
+  --accent-warning: var(--neon-orange, #ff6b00);
+  --accent-danger: var(--neon-red, #ff073a);
+  --accent-info: var(--neon-blue, #0080ff);
+  --primary-color: var(--neon-cyan, #00f5ff);
+
+  /* 玻璃效果 - 霓虹玻璃 (带 fallback) */
+  --glass-bg: rgba(15, 22, 41, 0.75);
+  --glass-bg-hover: rgba(20, 27, 45, 0.85);
+  --glass-bg-active: rgba(26, 35, 64, 0.9);
+  --glass-border: rgba(0, 245, 255, 0.12);
+  --glass-border-hover: rgba(0, 245, 255, 0.25);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(0, 245, 255, 0.05);
+  --glass-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px var(--neon-cyan-glow, rgba(0, 245, 255, 0.6));
+
+  /* 卡片 */
+  --card-bg: rgba(15, 22, 41, 0.8);
+  --card-border: rgba(0, 245, 255, 0.1);
+  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+
+  /* 侧边栏 */
+  --sidebar-bg: rgba(10, 14, 26, 0.95);
+  --sidebar-border: rgba(0, 245, 255, 0.1);
+
+  /* 头部 */
+  --header-bg: rgba(10, 14, 26, 0.9);
+  --header-border: rgba(0, 245, 255, 0.1);
+
+  /* 滚动条 */
+  --scrollbar-track: #0f1629;
+  --scrollbar-thumb: rgba(0, 245, 255, 0.3);
+  --scrollbar-thumb-hover: rgba(0, 245, 255, 0.5);
+
+  /* 图表 */
+  --chart-grid: rgba(0, 245, 255, 0.08);
+  --chart-text: #8ba4b4;
+  --chart-line-1: var(--neon-cyan);
+  --chart-line-2: var(--neon-magenta);
+  --chart-line-3: var(--neon-orange);
+  --chart-line-4: var(--neon-green);
+  --chart-line-5: var(--neon-yellow);
+}
+
+/* ===== 亮色主题 (赛博朋克白昼模式) ===== */
+.light {
+  /* 背景色 - 冷白调 */
+  --bg-void: #e8eef5;
+  --bg-base: #f0f4f8;
   --bg-elevated: #ffffff;
-  --bg-overlay: rgba(255, 255, 255, 0.8);
-  --bg-muted: #f1f5f9;
-  --bg-subtle: #e2e8f0;
-  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-surface: #f8fafc;
+  --bg-overlay: rgba(240, 244, 248, 0.95);
+  --bg-muted: #e2e8f0;
+  --bg-subtle: #cbd5e1;
+  --bg-hover: rgba(0, 180, 196, 0.08);
+  --bg-active: rgba(0, 180, 196, 0.12);
 
   /* 文字色 */
   --text-primary: #0f172a;
   --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --text-tertiary: #9ca3af;
-  --text-inverse: #ffffff;
-
-  /* 边框色 */
-  --border-default: #e2e8f0;
-  --border-muted: #f1f5f9;
-  --border-emphasis: #cbd5e1;
-  --border-color: #e2e8f0;
-
-  /* 强调色 */
-  --accent-primary: #3b82f6;
-  --accent-primary-hover: #2563eb;
-  --accent-success: #22c55e;
-  --accent-warning: #f59e0b;
-  --accent-danger: #ef4444;
-  --accent-info: #8b5cf6;
-  --primary-color: #3b82f6;
-  
-  /* 玻璃效果 */
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  
-  /* 卡片 */
-  --card-bg: #ffffff;
-  --card-border: rgba(0, 0, 0, 0.05);
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
-  
-  /* 侧边栏 */
-  --sidebar-bg: rgba(248, 250, 252, 0.9);
-  --sidebar-border: #e2e8f0;
-  
-  /* 头部 */
-  --header-bg: rgba(255, 255, 255, 0.85);
-  --header-border: #e2e8f0;
-  
-  /* 滚动条 */
-  --scrollbar-track: #f1f5f9;
-  --scrollbar-thumb: #cbd5e1;
-  --scrollbar-thumb-hover: #94a3b8;
-  
-  /* 图表 */
-  --chart-grid: #e2e8f0;
-  --chart-text: #64748b;
-}
-
-/* ===== 暗色主题 ===== */
-.dark {
-  /* 背景色 - 深邃蓝灰 */
-  --bg-base: #0f172a;
-  --bg-elevated: #1e293b;
-  --bg-overlay: rgba(15, 23, 42, 0.9);
-  --bg-muted: #1e293b;
-  --bg-subtle: #334155;
-  --bg-hover: rgba(255, 255, 255, 0.06);
-
-  /* 文字色 */
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
   --text-muted: #64748b;
-  --text-tertiary: #6b7280;
-  --text-inverse: #0f172a;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #f0f4f8;
+  --text-neon: var(--neon-cyan-dim);
 
   /* 边框色 */
-  --border-default: #334155;
-  --border-muted: #1e293b;
-  --border-emphasis: #475569;
-  --border-color: #334155;
+  --border-default: rgba(0, 180, 196, 0.2);
+  --border-muted: rgba(0, 180, 196, 0.1);
+  --border-emphasis: rgba(0, 180, 196, 0.35);
+  --border-glow: rgba(0, 180, 196, 0.5);
+  --border-color: rgba(0, 180, 196, 0.2);
 
-  /* 强调色 */
-  --accent-primary: #60a5fa;
-  --accent-primary-hover: #3b82f6;
-  --accent-success: #4ade80;
-  --accent-warning: #fbbf24;
-  --accent-danger: #f87171;
-  --accent-info: #a78bfa;
-  --primary-color: #60a5fa;
-  
-  /* 玻璃效果 - 深色玻璃 */
-  --glass-bg: rgba(30, 41, 59, 0.7);
-  --glass-border: rgba(71, 85, 105, 0.4);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  
+  /* 强调色 - 调暗的霓虹 */
+  --accent-primary: var(--neon-cyan-dim);
+  --accent-primary-hover: #009aa8;
+  --accent-primary-glow: rgba(0, 184, 196, 0.4);
+  --accent-secondary: var(--neon-magenta-dim);
+  --accent-success: var(--neon-green-dim);
+  --accent-warning: var(--neon-orange-dim);
+  --accent-danger: var(--neon-red-dim);
+  --accent-info: var(--neon-blue-dim);
+  --primary-color: var(--neon-cyan-dim);
+
+  /* 玻璃效果 */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-bg-hover: rgba(255, 255, 255, 0.9);
+  --glass-bg-active: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(0, 180, 196, 0.15);
+  --glass-border-hover: rgba(0, 180, 196, 0.3);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --glass-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.12), 0 0 15px rgba(0, 180, 196, 0.2);
+
   /* 卡片 */
-  --card-bg: rgba(30, 41, 59, 0.8);
-  --card-border: rgba(255, 255, 255, 0.05);
-  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-  
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(0, 180, 196, 0.12);
+  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+
   /* 侧边栏 */
-  --sidebar-bg: rgba(15, 23, 42, 0.95);
-  --sidebar-border: #334155;
-  
+  --sidebar-bg: rgba(248, 250, 252, 0.95);
+  --sidebar-border: rgba(0, 180, 196, 0.12);
+
   /* 头部 */
-  --header-bg: rgba(15, 23, 42, 0.9);
-  --header-border: #334155;
-  
+  --header-bg: rgba(255, 255, 255, 0.9);
+  --header-border: rgba(0, 180, 196, 0.12);
+
   /* 滚动条 */
-  --scrollbar-track: #1e293b;
-  --scrollbar-thumb: #475569;
-  --scrollbar-thumb-hover: #64748b;
-  
+  --scrollbar-track: #e2e8f0;
+  --scrollbar-thumb: rgba(0, 180, 196, 0.4);
+  --scrollbar-thumb-hover: rgba(0, 180, 196, 0.6);
+
   /* 图表 */
-  --chart-grid: #334155;
-  --chart-text: #94a3b8;
-}
-
-/* ===== 玻璃模糊效果类 ===== */
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-}
-
-.glass-subtle {
-  background: var(--glass-bg);
-  backdrop-filter: blur(8px) saturate(150%);
-  -webkit-backdrop-filter: blur(8px) saturate(150%);
-  border: 1px solid var(--glass-border);
-}
-
-.glass-card {
-  background: var(--card-bg);
-  backdrop-filter: blur(var(--glass-blur, 16px)) saturate(var(--glass-saturate, 180%));
-  -webkit-backdrop-filter: blur(var(--glass-blur, 16px)) saturate(var(--glass-saturate, 180%));
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-xl, 16px);
-  box-shadow: var(--card-shadow);
-  transition:
-    transform var(--transition-normal),
-    box-shadow var(--transition-normal),
-    background var(--transition-normal),
-    border-color var(--transition-normal);
-}
-
-.glass-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--glass-shadow-hover, var(--shadow-lg));
-  background: var(--glass-bg-hover, var(--card-bg));
-  border-color: var(--glass-border-hover, var(--card-border));
-}
-
-/* ===== 工具类 ===== */
-.bg-base { background-color: var(--bg-base); }
-.bg-elevated { background-color: var(--bg-elevated); }
-.bg-muted { background-color: var(--bg-muted); }
-
-.text-primary { color: var(--text-primary); }
-.text-secondary { color: var(--text-secondary); }
-.text-muted { color: var(--text-muted); }
-
-.border-default { border-color: var(--border-default); }
-.border-muted { border-color: var(--border-muted); }
-
-/* ===== 渐变背景 ===== */
-.gradient-mesh {
-  background-image: 
-    radial-gradient(at 40% 20%, var(--accent-primary) 0px, transparent 50%),
-    radial-gradient(at 80% 0%, var(--accent-info) 0px, transparent 50%),
-    radial-gradient(at 0% 50%, var(--accent-success) 0px, transparent 50%);
-  opacity: 0.05;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.dark .gradient-mesh {
-  opacity: 0.08;
-}
-
-/* ===== 动画 ===== */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-16px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.animate-fade-in {
-  animation: fadeIn var(--transition-normal) ease-out;
-}
-
-.animate-slide-in {
-  animation: slideInLeft var(--transition-normal) ease-out;
-}
-
-.animate-pulse {
-  animation: pulse 2s ease-in-out infinite;
-}
-
-/* ===== 过渡效果 ===== */
-.transition-colors {
-  transition: background-color var(--transition-normal), 
-              border-color var(--transition-normal), 
-              color var(--transition-normal);
-}
-
-.transition-all {
-  transition: all var(--transition-normal);
-}
-
-/* ===== 状态指示器 ===== */
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.status-dot.online {
-  background-color: var(--accent-success);
-  box-shadow: 0 0 8px var(--accent-success);
-}
-
-.status-dot.offline {
-  background-color: var(--text-muted);
-}
-
-.status-dot.warning {
-  background-color: var(--accent-warning);
-  box-shadow: 0 0 8px var(--accent-warning);
-}
-
-.status-dot.error {
-  background-color: var(--accent-danger);
-  box-shadow: 0 0 8px var(--accent-danger);
-}
-
-/* ===== 性能优化 ===== */
-/* 为频繁动画的元素添加 will-change 提示 */
-.glass-card,
-.chart-card,
-.group-card {
-  will-change: transform, box-shadow;
-}
-
-/* 动画完成后移除 will-change 以释放资源 */
-.glass-card:not(:hover),
-.chart-card:not(:hover),
-.group-card:not(:hover) {
-  will-change: auto;
-}
-
-/* GPU 加速层 */
-.animate-fade-in,
-.animate-slide-in,
-.animate-scale-in {
-  will-change: opacity, transform;
-  backface-visibility: hidden;
-}
-
-/* 减少重绘区域 */
-.gradient-mesh {
-  contain: strict;
-}
-
-/* 优化滚动性能 */
-.content,
-.home-view,
-.settings-view {
-  contain: content;
+  --chart-grid: rgba(0, 180, 196, 0.1);
+  --chart-text: #475569;
 }

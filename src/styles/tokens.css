@@ -1,11 +1,47 @@
 /**
- * 设计令牌系统 (Design Tokens)
- * 统一的设计规范，确保整个应用的一致性
+ * 赛博朋克工业风设计令牌系统 (Cyberpunk Industrial Design Tokens)
+ * Cyberpunk Industrial Style - Neon Dreams & Dark Futures
  *
- * 使用方式：在 main.css 中首先导入此文件
+ * 设计理念：
+ * - 深邃暗色背景，霓虹强调色
+ * - 扫描线纹理，数据流动画
+ * - 科技感字体，发光效果
+ *
+ * 注意：Google Fonts 已移至 index.html 使用 <link> 标签加载
+ * 避免 CSS @import 阻塞渲染导致黑屏问题
  */
 
 :root {
+  /* ===== 赛博朋克配色系统 ===== */
+  /* 霓虹主色调 */
+  --neon-cyan: #00f5ff;
+  --neon-cyan-dim: #00b8c4;
+  --neon-cyan-glow: rgba(0, 245, 255, 0.6);
+
+  --neon-magenta: #ff00ff;
+  --neon-magenta-dim: #c400c4;
+  --neon-magenta-glow: rgba(255, 0, 255, 0.5);
+
+  --neon-orange: #ff6b00;
+  --neon-orange-dim: #cc5500;
+  --neon-orange-glow: rgba(255, 107, 0, 0.5);
+
+  --neon-green: #39ff14;
+  --neon-green-dim: #2ecc0f;
+  --neon-green-glow: rgba(57, 255, 20, 0.5);
+
+  --neon-yellow: #ffff00;
+  --neon-yellow-dim: #cccc00;
+  --neon-yellow-glow: rgba(255, 255, 0, 0.4);
+
+  --neon-red: #ff073a;
+  --neon-red-dim: #cc052e;
+  --neon-red-glow: rgba(255, 7, 58, 0.5);
+
+  --neon-blue: #0080ff;
+  --neon-blue-dim: #0066cc;
+  --neon-blue-glow: rgba(0, 128, 255, 0.5);
+
   /* ===== 间距系统 (Spacing) ===== */
   --space-0: 0;
   --space-1: 4px;
@@ -20,26 +56,33 @@
   --space-16: 64px;
 
   /* 语义化间距别名 */
-  --space-xs: var(--space-1);   /* 4px */
-  --space-sm: var(--space-2);   /* 8px */
-  --space-md: var(--space-4);   /* 16px */
-  --space-lg: var(--space-6);   /* 24px */
-  --space-xl: var(--space-8);   /* 32px */
-  --space-2xl: var(--space-12); /* 48px */
+  --space-xs: var(--space-1);
+  --space-sm: var(--space-2);
+  --space-md: var(--space-4);
+  --space-lg: var(--space-6);
+  --space-xl: var(--space-8);
+  --space-2xl: var(--space-12);
 
   /* ===== 字体系统 (Typography) ===== */
+  /* 赛博朋克字体栈 */
+  --font-display: 'Orbitron', 'Exo 2', sans-serif;
+  --font-body: 'Rajdhani', 'Exo 2', sans-serif;
+  --font-mono: 'Share Tech Mono', 'Consolas', monospace;
+  --font-data: 'Share Tech Mono', monospace;
+
   /* 字体大小 */
-  --text-xs: 12px;
-  --text-sm: 13px;
+  --text-xs: 11px;
+  --text-sm: 12px;
   --text-base: 14px;
   --text-lg: 16px;
   --text-xl: 18px;
-  --text-2xl: 20px;
-  --text-3xl: 24px;
-  --text-4xl: 28px;
-  --text-5xl: 32px;
+  --text-2xl: 22px;
+  --text-3xl: 26px;
+  --text-4xl: 32px;
+  --text-5xl: 40px;
 
   /* 字重 */
+  --font-light: 300;
   --font-normal: 400;
   --font-medium: 500;
   --font-semibold: 600;
@@ -47,18 +90,25 @@
 
   /* 行高 */
   --leading-none: 1;
-  --leading-tight: 1.25;
+  --leading-tight: 1.2;
   --leading-snug: 1.375;
   --leading-normal: 1.5;
   --leading-relaxed: 1.625;
 
+  /* 字间距 */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.05em;
+  --tracking-wider: 0.1em;
+  --tracking-widest: 0.2em;
+
   /* ===== 动画系统 (Animation) ===== */
-  /* 时长 */
   --duration-instant: 50ms;
   --duration-fast: 150ms;
   --duration-normal: 250ms;
-  --duration-slow: 350ms;
-  --duration-slower: 500ms;
+  --duration-slow: 400ms;
+  --duration-slower: 600ms;
+  --duration-slowest: 1000ms;
 
   /* 缓动函数 */
   --ease-linear: linear;
@@ -66,39 +116,39 @@
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-cyber: cubic-bezier(0.23, 1, 0.32, 1);
 
   /* 组合过渡 */
-  --transition-fast: var(--duration-fast) var(--ease-in-out);
-  --transition-normal: var(--duration-normal) var(--ease-in-out);
-  --transition-slow: var(--duration-slow) var(--ease-in-out);
+  --transition-fast: var(--duration-fast) var(--ease-cyber);
+  --transition-normal: var(--duration-normal) var(--ease-cyber);
+  --transition-slow: var(--duration-slow) var(--ease-cyber);
 
   /* ===== 圆角系统 (Border Radius) ===== */
   --radius-none: 0;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
-  --radius-3xl: 20px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-2xl: 12px;
+  --radius-3xl: 16px;
   --radius-full: 9999px;
 
   /* ===== 阴影系统 (Shadows) ===== */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.7);
+  --shadow-2xl: 0 24px 48px rgba(0, 0, 0, 0.8);
 
-  /* ===== 响应式断点 (Breakpoints) ===== */
-  /*
-   * 使用方式：@media (min-width: 640px) { ... }
-   * sm: 640px  - 小屏手机横屏
-   * md: 768px  - 平板竖屏
-   * lg: 1024px - 平板横屏/小笔记本
-   * xl: 1280px - 桌面显示器
-   * 2xl: 1536px - 大屏显示器
-   */
+  /* 霓虹发光阴影 */
+  --glow-cyan: 0 0 10px var(--neon-cyan-glow), 0 0 20px var(--neon-cyan-glow), 0 0 40px var(--neon-cyan-glow);
+  --glow-magenta: 0 0 10px var(--neon-magenta-glow), 0 0 20px var(--neon-magenta-glow), 0 0 40px var(--neon-magenta-glow);
+  --glow-orange: 0 0 10px var(--neon-orange-glow), 0 0 20px var(--neon-orange-glow);
+  --glow-green: 0 0 10px var(--neon-green-glow), 0 0 20px var(--neon-green-glow);
+  --glow-red: 0 0 10px var(--neon-red-glow), 0 0 20px var(--neon-red-glow);
+
+  /* ===== 响应式断点 ===== */
   --breakpoint-sm: 640px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
@@ -106,6 +156,7 @@
   --breakpoint-2xl: 1536px;
 
   /* ===== 层级系统 (Z-Index) ===== */
+  --z-base: 0;
   --z-dropdown: 1000;
   --z-sticky: 1020;
   --z-fixed: 1030;
@@ -114,10 +165,12 @@
   --z-popover: 1060;
   --z-tooltip: 1070;
   --z-toast: 1080;
+  --z-scanline: 9999;
 
-  /* ===== 玻璃效果参数 (Glass Effect) ===== */
+  /* ===== 玻璃效果参数 ===== */
   --glass-blur: 16px;
   --glass-blur-sm: 8px;
   --glass-blur-lg: 24px;
-  --glass-saturate: 180%;
+  --glass-blur-heavy: 32px;
+  --glass-saturate: 120%;
 }

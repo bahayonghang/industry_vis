@@ -250,11 +250,92 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+/* ===== 赛博朋克连接设置卡片 ===== */
 .connection-card {
+  position: relative;
   max-width: 600px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+/* 顶部霓虹渐变条 */
+.connection-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--neon-cyan) 0%,
+    var(--neon-magenta) 50%,
+    var(--neon-orange) 100%
+  );
+  opacity: 0.8;
+}
+
+.connection-card :deep(.n-card-header) {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 245, 255, 0.05) 0%,
+    rgba(255, 0, 255, 0.03) 100%
+  );
+  border-bottom: 1px solid var(--border-default);
+}
+
+.connection-card :deep(.n-card-header__main) {
+  font-family: var(--font-display);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-primary);
 }
 
 .connection-card :deep(.n-card__content) {
-  padding: 20px;
+  padding: 24px;
+}
+
+/* 表单标签样式 */
+.connection-card :deep(.n-form-item-label__text) {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-secondary);
+}
+
+/* 输入框霓虹聚焦效果 */
+.connection-card :deep(.n-input:focus-within) {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 12px var(--neon-cyan-glow);
+}
+
+/* 选择器霓虹效果 */
+.connection-card :deep(.n-select .n-base-selection:focus-within) {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 12px var(--neon-cyan-glow);
+}
+
+/* 警告提示赛博朋克风格 */
+.connection-card :deep(.n-alert--warning-type) {
+  background: rgba(255, 136, 0, 0.08);
+  border: 1px solid rgba(255, 136, 0, 0.25);
+  border-radius: var(--radius-lg);
+}
+
+/* 成功提示赛博朋克风格 */
+.connection-card :deep(.n-alert--success-type) {
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  border-radius: var(--radius-lg);
+}
+
+/* 错误提示赛博朋克风格 */
+.connection-card :deep(.n-alert--error-type) {
+  background: rgba(255, 0, 85, 0.08);
+  border: 1px solid rgba(255, 0, 85, 0.25);
+  border-radius: var(--radius-lg);
 }
 </style>

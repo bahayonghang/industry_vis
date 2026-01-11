@@ -237,6 +237,7 @@ import { h } from 'vue'
 </template>
 
 <style scoped>
+/* ===== 赛博朋克标签分组树 ===== */
 .tag-group-tree {
   display: flex;
   flex-direction: column;
@@ -247,55 +248,74 @@ import { h } from 'vue'
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color);
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-default);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 245, 255, 0.03) 0%,
+    transparent 100%
+  );
 }
 
 .header-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
   color: var(--text-secondary);
+}
+
+/* 标题图标霓虹效果 */
+.header-title :deep(.n-icon) {
+  color: var(--neon-cyan);
+  filter: drop-shadow(0 0 4px var(--neon-cyan-glow));
 }
 
 .tree-content {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  padding: 10px;
 }
 
 .group-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .group-item {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
+  background: transparent;
+  border: 1px solid transparent;
 }
 
 .group-item:hover {
   background: var(--bg-hover);
+  border-color: rgba(0, 245, 255, 0.15);
 }
 
 .group-item.active {
-  background: var(--accent-color-alpha);
-  border-left: 3px solid var(--accent-color);
-  padding-left: 9px;
+  background: rgba(0, 245, 255, 0.08);
+  border-color: rgba(0, 245, 255, 0.25);
+  border-left: 3px solid var(--neon-cyan);
+  padding-left: 11px;
+  box-shadow: 0 0 15px var(--neon-cyan-glow);
 }
 
 .group-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex: 1;
   min-width: 0;
 }
@@ -303,52 +323,78 @@ import { h } from 'vue'
 .group-icon {
   color: var(--text-muted);
   flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.group-item:hover .group-icon {
+  color: var(--neon-cyan);
 }
 
 .group-item.active .group-icon {
-  color: var(--accent-color);
+  color: var(--neon-cyan);
+  filter: drop-shadow(0 0 4px var(--neon-cyan-glow));
 }
 
 .group-name {
-  font-size: 13px;
-  font-weight: 500;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .group-count {
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
   color: var(--text-muted);
   flex-shrink: 0;
+  padding: 2px 8px;
+  background: rgba(0, 245, 255, 0.08);
+  border-radius: var(--radius-sm);
 }
 
 .group-empty-hint {
-  font-size: 11px;
-  color: var(--accent-color);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--neon-orange);
   flex-shrink: 0;
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
 .group-item.empty {
-  border: 1px dashed var(--border-color);
+  border: 1px dashed var(--border-default);
   background: transparent;
 }
 
 .group-item.empty:hover {
-  border-color: var(--accent-color);
-  background: var(--accent-color-alpha);
+  border-color: var(--neon-cyan);
+  background: rgba(0, 245, 255, 0.05);
+  box-shadow: 0 0 12px var(--neon-cyan-glow);
 }
 
 .group-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--transition-fast);
 }
 
 .group-item:hover .group-actions {
   opacity: 1;
+}
+
+/* 操作按钮霓虹效果 */
+.group-actions :deep(.n-button:hover) {
+  color: var(--neon-cyan);
+}
+
+.group-actions :deep(.n-button--error-type:hover) {
+  color: var(--neon-red);
 }
 </style>

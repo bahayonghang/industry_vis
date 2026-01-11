@@ -153,12 +153,71 @@ async function handleSave() {
 </template>
 
 <style scoped>
+/* ===== 赛博朋克标签分组编辑器 ===== */
 .create-hint {
-  padding: 12px 16px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 245, 255, 0.05) 0%,
+    rgba(255, 0, 255, 0.03) 100%
+  );
+  border: 1px solid rgba(0, 245, 255, 0.15);
+  border-radius: var(--radius-lg);
   color: var(--text-muted);
-  font-size: 13px;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
   text-align: center;
+}
+
+/* 弹窗霓虹边框 */
+:deep(.n-modal) {
+  border: 1px solid var(--border-default);
+  overflow: hidden;
+}
+
+/* 弹窗顶部霓虹条 */
+:deep(.n-card) {
+  position: relative;
+}
+
+:deep(.n-card)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+  opacity: 0.8;
+  z-index: 1;
+}
+
+/* 弹窗标题样式 */
+:deep(.n-card-header__main) {
+  font-family: var(--font-display);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-primary);
+}
+
+/* 表单标签样式 */
+:deep(.n-form-item-label__text) {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-secondary);
+}
+
+/* 输入框霓虹聚焦效果 */
+:deep(.n-input:focus-within) {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 12px var(--neon-cyan-glow);
+}
+
+/* 底部按钮区域 */
+:deep(.n-card__footer) {
+  border-top: 1px solid var(--border-default);
+  background: rgba(0, 0, 0, 0.1);
 }
 </style>

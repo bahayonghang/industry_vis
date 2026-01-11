@@ -1,55 +1,277 @@
+/**
+ * 赛博朋克工业风全局样式 (Cyberpunk Industrial Global Styles)
+ * 科技感字体、基础重置、全局效果
+ */
+
 /* 设计令牌优先导入 */
 @import './tokens.css';
 @import './themes.css';
+@import './cyberpunk.css';
+@import './glass.css';
 
-* {
+/* ===== 基础重置 ===== */
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-html, body, #app {
+/* ===== 根元素样式 ===== */
+html {
   height: 100%;
   width: 100%;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-size: 16px;
+  scroll-behavior: smooth;
 }
 
 body {
-  background-color: var(--bg-base);
-  color: var(--text-primary);
-  transition: background-color var(--transition-normal), color var(--transition-normal);
+  height: 100%;
+  width: 100%;
+  /* Fallback 值确保即使 CSS 变量未加载也能显示内容 */
+  font-family: 'Rajdhani', 'Exo 2', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-body, 'Rajdhani', 'Exo 2', sans-serif);
+  font-size: 14px;
+  font-size: var(--text-base, 14px);
+  font-weight: 400;
+  font-weight: var(--font-normal, 400);
+  line-height: 1.5;
+  line-height: var(--leading-normal, 1.5);
+  letter-spacing: 0;
+  letter-spacing: var(--tracking-normal, 0);
+  /* 关键：使用硬编码 fallback 颜色，确保内容可见 */
+  color: #e8f4f8;
+  color: var(--text-primary, #e8f4f8);
+  background-color: #0a0e1a;
+  background-color: var(--bg-base, #0a0e1a);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  transition:
+    background-color 250ms cubic-bezier(0.23, 1, 0.32, 1),
+    color 250ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-/* Scrollbar styling */
+#app {
+  height: 100%;
+  width: 100%;
+}
+
+/* ===== 标题样式 ===== */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-primary);
+}
+
+h1 {
+  font-size: var(--text-4xl);
+  letter-spacing: var(--tracking-wider);
+}
+
+h2 {
+  font-size: var(--text-2xl);
+}
+
+h3 {
+  font-size: var(--text-xl);
+}
+
+h4 {
+  font-size: var(--text-lg);
+}
+
+/* ===== 代码和数据文本 ===== */
+code, pre, .mono, .data {
+  font-family: var(--font-mono);
+}
+
+/* ===== 链接样式 ===== */
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-primary-hover);
+  text-shadow: 0 0 8px var(--accent-primary-glow);
+}
+
+/* ===== 选择文字样式 ===== */
+::selection {
+  background-color: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+/* ===== 焦点样式 ===== */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 8px var(--accent-primary-glow);
+}
+
+/* ===== 滚动条样式 ===== */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
   background: var(--scrollbar-track);
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
-  border-radius: 3px;
+  border-radius: 4px;
+  border: 2px solid var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
 }
 
-/* 选择文字样式 */
-::selection {
-  background-color: var(--accent-primary);
-  color: var(--text-inverse);
+/* Firefox 滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
-/* 焦点样式 */
-:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
+/* ===== 按钮基础重置 ===== */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* ===== 输入框基础样式 ===== */
+input, textarea, select {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  background: var(--glass-bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-glow);
+}
+
+/* ===== 渐变背景装饰 ===== */
+.gradient-mesh {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: -1;
+  /* Fallback: 使用硬编码颜色值 */
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(0, 245, 255, 0.6) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255, 0, 255, 0.5) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 30% at 50% 50%, rgba(0, 128, 255, 0.5) 0%, transparent 60%);
+  opacity: 0.15;
+  animation: gradient-pulse 8s ease-in-out infinite;
+}
+
+@keyframes gradient-pulse {
+  0%, 100% {
+    opacity: 0.15;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.02);
+  }
+}
+
+.light .gradient-mesh {
+  opacity: 0.08;
+}
+
+/* ===== 网格背景 ===== */
+.cyber-bg {
+  position: relative;
+}
+
+.cyber-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    linear-gradient(rgba(0, 245, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ===== 性能优化 ===== */
+.gradient-mesh {
+  contain: strict;
+  will-change: opacity, transform;
+}
+
+/* 减少重绘区域 */
+.content,
+.home-view,
+.settings-view {
+  contain: content;
+}
+
+/* GPU 加速层 */
+.animate-cyber-fade-in,
+.animate-cyber-slide-in,
+.animate-cyber-scale-in {
+  will-change: opacity, transform, filter;
+  backface-visibility: hidden;
+}
+
+/* 动画完成后移除 will-change */
+.cyber-card:not(:hover),
+.glass-card:not(:hover) {
+  will-change: auto;
+}
+
+/* ===== 工具类 ===== */
+.bg-base { background-color: var(--bg-base); }
+.bg-elevated { background-color: var(--bg-elevated); }
+.bg-surface { background-color: var(--bg-surface); }
+.bg-muted { background-color: var(--bg-muted); }
+
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+.text-neon { color: var(--text-neon); }
+
+.border-default { border-color: var(--border-default); }
+.border-muted { border-color: var(--border-muted); }
+.border-glow { border-color: var(--border-glow); }
+
+/* ===== 过渡效果 ===== */
+.transition-colors {
+  transition:
+    background-color var(--transition-normal),
+    border-color var(--transition-normal),
+    color var(--transition-normal);
+}
+
+.transition-all {
+  transition: all var(--transition-normal);
+}
+
+.transition-transform {
+  transition: transform var(--transition-normal);
 }

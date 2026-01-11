@@ -5,8 +5,12 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>工业数据查看系统</title>
+    <!-- Google Fonts 预连接和加载 - 赛博朋克字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   </head>
-  <body style="background-color: #0f172a; color: #f1f5f9;">
+  <body style="background-color: #0a0e1a; color: #e8f4f8;">
     <div id="app">
       <!-- 加载占位符 - Vue 挂载后会被替换 -->
       <div id="loading-placeholder" style="
@@ -15,17 +19,18 @@
         align-items: center;
         justify-content: center;
         height: 100vh;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       ">
         <div style="
           width: 40px;
           height: 40px;
-          border: 3px solid #334155;
-          border-top-color: #3b82f6;
+          border: 3px solid #1a2340;
+          border-top-color: #00f5ff;
           border-radius: 50%;
           animation: spin 1s linear infinite;
+          box-shadow: 0 0 15px rgba(0, 245, 255, 0.4);
         "></div>
-        <p style="margin-top: 16px; color: #94a3b8; font-size: 14px;">正在加载...</p>
+        <p style="margin-top: 16px; color: #8ba4b4; font-size: 14px; letter-spacing: 0.05em;">正在加载...</p>
       </div>
       <style>
         @keyframes spin {

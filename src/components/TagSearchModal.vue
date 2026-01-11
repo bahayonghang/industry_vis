@@ -148,25 +148,50 @@ function handleClose() {
 </template>
 
 <style scoped>
+/* ===== 赛博朋克标签搜索弹窗 ===== */
 .tag-search-modal {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .max-warning {
-  padding: 8px 12px;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 6px;
-  color: #f59e0b;
-  font-size: 13px;
+  padding: 10px 14px;
+  background: rgba(255, 136, 0, 0.1);
+  border: 1px solid rgba(255, 136, 0, 0.3);
+  border-radius: var(--radius-lg);
+  color: var(--neon-orange);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  box-shadow: 0 0 10px rgba(255, 136, 0, 0.1);
 }
 
 .results-container {
+  position: relative;
   border: 1px solid var(--border-default);
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   min-height: 200px;
+  background: var(--glass-bg);
+  overflow: hidden;
+}
+
+/* 结果容器顶部霓虹条 */
+.results-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--neon-cyan) 30%,
+    var(--neon-magenta) 70%,
+    transparent 100%
+  );
+  opacity: 0.5;
 }
 
 .empty-hint {
@@ -175,7 +200,9 @@ function handleClose() {
   justify-content: center;
   height: 200px;
   color: var(--text-muted);
-  font-size: 14px;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
 }
 
 .loading-state {
@@ -183,9 +210,12 @@ function handleClose() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
   height: 200px;
-  color: var(--text-muted);
+  color: var(--neon-cyan);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
 }
 
 .result-item {
@@ -193,10 +223,25 @@ function handleClose() {
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  padding: 4px 0;
 }
 
 .tag-name {
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--neon-cyan);
+  letter-spacing: var(--tracking-wide);
+}
+
+/* 列表项悬停效果 */
+.results-container :deep(.n-list-item) {
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-md);
+  margin: 2px 4px;
+}
+
+.results-container :deep(.n-list-item:hover) {
+  background: var(--bg-hover);
+  box-shadow: 0 0 10px var(--neon-cyan-glow);
 }
 </style>
