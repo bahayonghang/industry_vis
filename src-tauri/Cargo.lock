@@ -2055,6 +2055,7 @@ dependencies = [
  "dirs 5.0.1",
  "lru",
  "notify",
+ "once_cell",
  "parking_lot",
  "polars",
  "serde",
