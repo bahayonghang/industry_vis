@@ -21,7 +21,7 @@ env:
 jobs:
   build-windows:
     runs-on: windows-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
       # =====================
       # CI 检查（与 just ci 一致）
       # =====================
-      
+
       - name: Lint - Frontend ESLint
         run: bun run lint
 
@@ -58,12 +58,19 @@ jobs:
         run: cargo fmt --check
         working-directory: src-tauri
 
+      - name: Test - Frontend
+        run: bun run test
+
+      # Build frontend first (required for Rust compilation due to frontendDist)
+      - name: Sync version file
+        run: bun run sync-version
+
+      - name: Build frontend
+        run: bun run build
+
       - name: Lint - Rust Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
         working-directory: src-tauri
-
-      - name: Test - Frontend
-        run: bun run test
 
       - name: Test - Rust
         run: cargo test
@@ -72,9 +79,6 @@ jobs:
       # =====================
       # 构建与发布
       # =====================
-
-      - name: Sync version file
-        run: bun run sync-version
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -85,10 +89,10 @@ jobs:
           releaseName: 'Industry Vis ${{ github.ref_name }}'
           releaseBody: |
             ## 工业数据可视化系统 ${{ github.ref_name }}
-            
+
             ### 安装说明
             下载 `.exe` 安装程序并运行即可。
-            
+
             ### 系统要求
             - Windows 10/11 (64-bit)
             - [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (若启动报错请先安装)
