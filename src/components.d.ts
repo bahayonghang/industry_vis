@@ -16,6 +16,7 @@ declare module 'vue' {
     GroupEditView: typeof import('./components/GroupEditView.vue')['default']
     LineChart: typeof import('./components/LineChart.vue')['default']
     NTag: typeof import('naive-ui')['NTag']
+    PerformanceMonitor: typeof import('./components/PerformanceMonitor.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TagGroupEditor: typeof import('./components/TagGroupEditor.vue')['default']

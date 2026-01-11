@@ -72,6 +72,14 @@ export interface ConnectionTestResult {
   message: string
 }
 
+// 连接池状态
+export interface PoolState {
+  connections: number
+  idleConnections: number
+  activeConnections: number
+  maxSize: number
+}
+
 // 异常值剔除配置
 export interface OutlierRemovalConfig {
   enabled: boolean

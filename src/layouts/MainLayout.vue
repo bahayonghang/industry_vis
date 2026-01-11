@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, h, provide, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { 
-  NLayout, 
-  NLayoutHeader, 
+import {
+  NLayout,
+  NLayoutHeader,
   NLayoutContent,
   NLayoutSider,
   NMenu,
@@ -13,8 +13,7 @@ import {
   NTooltip,
   NDivider,
   NDropdown,
-  NModal,
-  NAlert
+  NModal
 } from 'naive-ui'
 import { 
   HomeOutline, 
@@ -27,7 +26,8 @@ import {
   ChevronForwardOutline,
   EllipsisVertical,
   InformationCircleOutline,
-  WarningOutline
+  WarningOutline,
+  CloseOutline
 } from '@vicons/ionicons5'
 import type { MenuOption, DropdownOption } from 'naive-ui'
 import { useThemeStore } from '@/stores/theme'
@@ -53,6 +53,9 @@ onMounted(async () => {
     appVersion.value = '0.0.0'
   }
 })
+
+// 数据库连接警告状态
+const showConnectionWarning = ref(true)
 
 // 编辑分组状态
 const editingGroupId = ref<string | null>(null)
@@ -206,21 +209,20 @@ const handleMoreSelect = (key: string) => {
         
         <NSpace align="center" :size="12">
           <!-- 数据库未连接警告 -->
-          <NAlert 
-            v-if="!configStore.isConnected" 
-            type="warning" 
-            :bordered="false"
+          <div 
+            v-if="!configStore.isConnected && showConnectionWarning" 
             class="connection-alert"
-            closable
-            style="display: inline-flex; align-items: center;"
           >
-            <template #icon>
-              <NIcon :component="WarningOutline" />
-            </template>
-            数据库未连接，请前往
+            <div class="warning-icon">
+              <NIcon :component="WarningOutline" size="18" />
+            </div>
+            <span>数据库未连接，请前往</span>
             <span class="alert-link" @click="router.push('/settings')">设置</span>
-            配置数据库
-          </NAlert>
+            <span>配置数据库</span>
+            <div class="close-btn" @click="showConnectionWarning = false">
+              <NIcon :component="CloseOutline" size="16" />
+            </div>
+          </div>
           
           <!-- 连接状态指示 -->
           <NTooltip>
@@ -544,28 +546,40 @@ const handleMoreSelect = (key: string) => {
 
 /* 连接警告样式 */
 .connection-alert {
-  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  height: 32px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 136, 0, 0.1);
+  border: 1px solid rgba(255, 136, 0, 0.3);
+  color: #fb8c00;
   font-family: var(--font-body);
   font-size: var(--text-xs);
-  border-radius: var(--radius-lg);
   animation: slideIn 0.4s var(--ease-cyber);
-  line-height: 1.5;
-  height: 34px;
-  border: 1px solid rgba(255, 136, 0, 0.3);
 }
 
-.connection-alert :deep(.n-alert-body) {
-  padding: 0;
+.warning-icon {
   display: flex;
   align-items: center;
+  margin-right: 8px;
+  color: #fb8c00;
 }
 
-.connection-alert :deep(.n-alert__icon) {
-  margin-right: 10px;
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
+  cursor: pointer;
+  color: rgba(255, 136, 0, 0.6);
+  transition: all 0.2s ease;
 }
 
-.connection-alert :deep(.n-alert__close) {
-  margin-left: 10px;
+.close-btn:hover {
+  color: #fb8c00;
+  background: rgba(255, 136, 0, 0.1);
+  border-radius: 50%;
 }
 
 .alert-link {
