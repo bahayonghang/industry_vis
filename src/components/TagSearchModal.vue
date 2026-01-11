@@ -119,19 +119,22 @@ function handleClose() {
             description="无匹配结果"
           />
           
-          <NList v-else hoverable clickable>
+          <NList v-else hoverable clickable class="result-list">
             <NListItem
-              v-for="tag in filteredResults"
+              v-for="(tag, index) in filteredResults"
               :key="tag"
+              class="result-list-item"
+              :style="{ animationDelay: `${index * 0.03}s` }"
               @click="handleAdd(tag)"
             >
               <div class="result-item">
                 <span class="tag-name">{{ tag }}</span>
-                <NButton 
-                  size="tiny" 
-                  type="primary" 
+                <NButton
+                  size="tiny"
+                  type="primary"
                   secondary
                   :disabled="isMaxReached"
+                  class="add-btn"
                 >
                   <template #icon>
                     <NIcon :component="AddOutline" />
@@ -243,5 +246,31 @@ function handleClose() {
 .results-container :deep(.n-list-item:hover) {
   background: var(--bg-hover);
   box-shadow: 0 0 10px var(--neon-cyan-glow);
+}
+
+/* Result list item staggered animation */
+.result-list-item {
+  animation: result-slide-in 0.3s var(--ease-cyber, cubic-bezier(0.23, 1, 0.32, 1)) backwards;
+}
+
+@keyframes result-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Add button hover effect */
+.add-btn {
+  transition: all var(--transition-fast, 0.15s);
+}
+
+.add-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 0 8px var(--neon-cyan-glow, rgba(0, 245, 255, 0.4));
 }
 </style>

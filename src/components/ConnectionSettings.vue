@@ -130,10 +130,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <NCard title="数据库连接配置" class="connection-card">
-    <NForm :model="formValue" label-placement="left" label-width="100">
+  <NCard title="数据库连接配置" class="connection-card animate-card-in">
+    <NForm :model="formValue" label-placement="left" label-width="100" class="settings-form">
       <!-- 数据库类型选择 -->
-      <NFormItem label="数据库类型" path="dbType">
+      <NFormItem label="数据库类型" path="dbType" class="form-item-animate" style="--item-index: 0">
         <NSelect
           v-model:value="selectedDbType"
           :options="dbTypeOptions"
@@ -165,7 +165,7 @@ onMounted(async () => {
         数据源支持正在开发中，当前仅支持 SQL Server 连接。
       </NAlert>
       
-      <NFormItem label="服务器" path="server">
+      <NFormItem label="服务器" path="server" class="form-item-animate" style="--item-index: 1">
         <NInput 
           v-model:value="formValue.server" 
           placeholder="localhost" 
@@ -173,7 +173,7 @@ onMounted(async () => {
         />
       </NFormItem>
       
-      <NFormItem label="端口" path="port">
+      <NFormItem label="端口" path="port" class="form-item-animate" style="--item-index: 2">
         <NInputNumber 
           v-model:value="formValue.port" 
           :min="1" 
@@ -182,7 +182,7 @@ onMounted(async () => {
         />
       </NFormItem>
       
-      <NFormItem label="数据库" path="database">
+      <NFormItem label="数据库" path="database" class="form-item-animate" style="--item-index: 3">
         <NInput 
           v-model:value="formValue.database" 
           :placeholder="selectedDbType === 'postgres' ? 'postgres' : '控制器数据库'" 
@@ -190,7 +190,7 @@ onMounted(async () => {
         />
       </NFormItem>
       
-      <NFormItem label="用户名" path="username">
+      <NFormItem label="用户名" path="username" class="form-item-animate" style="--item-index: 4">
         <NInput 
           v-model:value="formValue.username" 
           :placeholder="selectedDbType === 'postgres' ? 'postgres' : 'sa'" 
@@ -198,7 +198,7 @@ onMounted(async () => {
         />
       </NFormItem>
       
-      <NFormItem label="密码" path="password">
+      <NFormItem label="密码" path="password" class="form-item-animate" style="--item-index: 5">
         <NInput
           v-model:value="formValue.password"
           type="password"
@@ -208,7 +208,7 @@ onMounted(async () => {
         />
       </NFormItem>
       
-      <NFormItem label="默认表" path="defaultTable">
+      <NFormItem label="默认表" path="defaultTable" class="form-item-animate" style="--item-index: 6">
         <NInput 
           v-model:value="formValue.defaultTable" 
           placeholder="历史表" 
@@ -337,5 +337,52 @@ onMounted(async () => {
   background: rgba(255, 0, 85, 0.08);
   border: 1px solid rgba(255, 0, 85, 0.25);
   border-radius: var(--radius-lg);
+}
+
+/* Card entrance animation */
+.animate-card-in {
+  animation: card-slide-in 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes card-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Form item staggered animation */
+.form-item-animate {
+  animation: form-item-in 0.4s cubic-bezier(0.23, 1, 0.32, 1) backwards;
+  animation-delay: calc(var(--item-index, 0) * 0.05s + 0.2s);
+}
+
+@keyframes form-item-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Button hover effects */
+.settings-form :deep(.n-button) {
+  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.settings-form :deep(.n-button:hover:not(:disabled)) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 245, 255, 0.2);
+}
+
+.settings-form :deep(.n-button--primary-type:hover:not(:disabled)) {
+  box-shadow: 0 4px 16px var(--neon-cyan-glow, rgba(0, 245, 255, 0.4));
 }
 </style>

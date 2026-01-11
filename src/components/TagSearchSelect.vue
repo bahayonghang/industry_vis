@@ -106,10 +106,11 @@ const filteredResults = computed(() =>
         
         <div v-else class="results-list">
           <div
-            v-for="tag in filteredResults"
+            v-for="(tag, index) in filteredResults"
             :key="tag"
             class="result-item"
             :class="{ disabled: isMaxReached }"
+            :style="{ animationDelay: `${index * 0.03}s` }"
             @click="addTag(tag)"
           >
             {{ tag }}
@@ -242,6 +243,18 @@ const filteredResults = computed(() =>
   cursor: pointer;
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+  animation: result-item-in 0.3s cubic-bezier(0.23, 1, 0.32, 1) backwards;
+}
+
+@keyframes result-item-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .result-item:hover:not(.disabled) {

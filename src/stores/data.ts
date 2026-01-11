@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import type { CacheStats, ChartSeriesData, DataProcessingConfig, HistoryRecord, QueryParams, QueryResult, QueryResultV2 } from '@/types'
+import type { CacheStats, ChartSeriesData, DataProcessingConfig, HistoryRecord, PoolState, QueryParams, QueryResult, QueryResultV2 } from '@/types'
 
 /**
  * 将 Date 对象格式化为本地时间字符串（用于数据库查询）
@@ -138,6 +138,18 @@ export const useDataStore = defineStore('data', () => {
     }
   }
 
+  /**
+   * 获取连接池状态
+   */
+  const getPoolState = async (): Promise<PoolState | null> => {
+    try {
+      return await invoke<PoolState | null>('get_pool_state')
+    } catch (e) {
+      console.error('Failed to get pool state:', e)
+      return null
+    }
+  }
+
   const exportToCsv = async () => {
     try {
       // Use Tauri dialog plugin via invoke
@@ -180,6 +192,7 @@ export const useDataStore = defineStore('data', () => {
     fetchDataV2,
     clearCache,
     getCacheStats,
+    getPoolState,
     exportToCsv,
   }
 })

@@ -33,6 +33,7 @@ import ChartCard from '@/components/ChartCard.vue'
 import TagSearchModal from '@/components/TagSearchModal.vue'
 import type { ChartConfig, DataProcessingConfig, TagGroup } from '@/types'
 import { createDefaultProcessingConfig, createDefaultChartConfig } from '@/types'
+import { invoke } from '@tauri-apps/api/core'
 
 const props = defineProps<{
   groupId: string
@@ -121,7 +122,7 @@ function loadGroupData() {
     charts.value = JSON.parse(JSON.stringify(group.charts || []))
     originalName.value = group.name
     originalCharts.value = JSON.parse(JSON.stringify(group.charts || []))
-    
+
     // 加载处理配置
     if (group.processingConfig) {
       Object.assign(processingConfig, JSON.parse(JSON.stringify(group.processingConfig)))
@@ -130,9 +131,14 @@ function loadGroupData() {
       Object.assign(processingConfig, createDefaultProcessingConfig())
       originalProcessingConfig.value = createDefaultProcessingConfig()
     }
-    
+
     hasChanges.value = false
-    
+
+    // 异步预热分组缓存（1天数据），不阻塞用户操作
+    invoke('warmup_group', { groupId: props.groupId }).catch((e) => {
+      console.debug('[GroupEditView] 分组预热失败:', e)
+    })
+
     // 设置标签并查询数据
     if (allTags.value.length > 0) {
       dataStore.setSelectedTags(allTags.value)

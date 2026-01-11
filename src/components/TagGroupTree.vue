@@ -178,13 +178,14 @@ import { h } from 'vue'
       
       <div v-else class="group-list">
         <div
-          v-for="group in tagGroupStore.groups"
+          v-for="(group, index) in tagGroupStore.groups"
           :key="group.id"
           class="group-item"
-          :class="{ 
+          :class="{
             active: tagGroupStore.selectedGroupId === group.id,
             empty: getAllTags(group).length === 0
           }"
+          :style="{ animationDelay: `${index * 0.05}s` }"
           @click="handleSelect(group)"
         >
           <div class="group-info">
@@ -297,6 +298,18 @@ import { h } from 'vue'
   transition: all var(--transition-fast);
   background: transparent;
   border: 1px solid transparent;
+  animation: group-item-in 0.35s cubic-bezier(0.23, 1, 0.32, 1) backwards;
+}
+
+@keyframes group-item-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .group-item:hover {

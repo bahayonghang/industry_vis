@@ -189,10 +189,11 @@ function formatTime(timestamp: string): string {
             responsive="screen"
             item-responsive
           >
-            <NGi v-for="group in groups" :key="group.id" span="0:24 600:12 900:8 1200:6">
-              <NCard 
-                class="group-card glass-card hoverable" 
+            <NGi v-for="(group, index) in groups" :key="group.id" span="0:24 600:12 900:8 1200:6">
+              <NCard
+                class="group-card glass-card hoverable"
                 :bordered="false"
+                :style="{ animationDelay: `${index * 0.08}s` }"
                 @click="openGroup(group.id)"
               >
                 <div class="group-content">
@@ -442,6 +443,18 @@ function formatTime(timestamp: string): string {
   align-items: center;
   padding: 18px;
   position: relative;
+  animation: group-card-in 0.4s cubic-bezier(0.23, 1, 0.32, 1) backwards;
+}
+
+@keyframes group-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* 分组卡片角落装饰 */

@@ -271,14 +271,18 @@ const chartOption = computed(() => {
 
 const initChart = () => {
   if (chartRef.value) {
-    chartInstance = echarts.init(chartRef.value)
+    // 启用脏矩形渲染优化，减少交互时的重绘区域
+    chartInstance = echarts.init(chartRef.value, null, {
+      useDirtyRect: true
+    })
     chartInstance.setOption(chartOption.value)
   }
 }
 
 const updateChart = () => {
   if (chartInstance) {
-    chartInstance.setOption(chartOption.value, { notMerge: false })
+    // 使用 replaceMerge 策略，仅更新 series 数据，保留其他配置
+    chartInstance.setOption(chartOption.value, { replaceMerge: ['series'] })
   }
 }
 
