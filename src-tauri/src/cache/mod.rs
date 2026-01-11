@@ -3,8 +3,13 @@
 //! 提供查询结果缓存，支持 LRU 淘汰和 TTL 过期。
 
 mod query_cache;
+mod warmup;
 
 pub use query_cache::{CacheConfig, CacheKey, CacheStats, QueryCache};
+pub use warmup::{
+    CacheWarmer, FixedTimeRangeStrategy, RecentTimeRangeStrategy, WarmupProgress, WarmupStrategy,
+    WarmupTask,
+};
 
 use std::sync::Arc;
 

@@ -26,3 +26,16 @@ pub async fn get_cache_stats(state: State<'_, Arc<RwLock<AppState>>>) -> AppResu
     let state = state.read().await;
     Ok(state.cache().get_stats().await)
 }
+
+/// 预热指定分组的缓存（1天数据）
+///
+/// 异步执行，不阻塞前端。用于进入分组时提前加载数据。
+#[tauri::command]
+pub async fn warmup_group(
+    state: State<'_, Arc<RwLock<AppState>>>,
+    group_id: String,
+) -> AppResult<()> {
+    debug!(target: "industry_vis::commands", "预热分组缓存: {}", group_id);
+    let state = state.read().await;
+    state.warmup_group(&group_id).await
+}

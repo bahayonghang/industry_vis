@@ -5,7 +5,9 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::cache::{CacheConfig, QueryCache, SharedCache};
+use crate::cache::{
+    CacheConfig, CacheWarmer, QueryCache, RecentTimeRangeStrategy, SharedCache, WarmupStrategy,
+};
 use crate::config::ConfigState;
 use crate::datasource::{
     ConnectionPool, DataSource, PoolConfig, ProfileRegistry, SchemaProfile, SqlServerSource,
@@ -130,6 +132,175 @@ impl AppState {
     pub async fn reinit_pool(&mut self) -> AppResult<()> {
         self.init_pool().await
     }
+
+    /// 获取连接池状态
+    pub fn get_pool_state(&self) -> Option<crate::datasource::PoolState> {
+        self.pool.as_ref().map(|p| p.state())
+    }
+
+    /// 执行缓存预热
+    ///
+    /// 根据配置和已保存的标签分组，预热最近几天的数据。
+    /// 仅在 `performance.cache.warmup_enabled` 为 true 时执行。
+    pub async fn warmup_cache(&self) -> AppResult<()> {
+        use tracing::{info, warn};
+
+        // Check if warmup is enabled
+        let warmup_enabled = self.config.app_config().performance.cache.warmup_enabled;
+        if !warmup_enabled {
+            info!(target: "industry_vis::state", "缓存预热已禁用，跳过");
+            return Ok(());
+        }
+
+        // Get query service handle
+        let query_handle = match self.query_service() {
+            Some(handle) => handle,
+            None => {
+                warn!(target: "industry_vis::state", "连接池未初始化，无法执行缓存预热");
+                return Ok(());
+            }
+        };
+
+        // Get tag groups for warmup
+        let groups = self.tag_group_service.list_groups();
+        if groups.is_empty() {
+            info!(target: "industry_vis::state", "没有标签分组，跳过缓存预热");
+            return Ok(());
+        }
+
+        // Generate warmup tasks from tag groups
+        let default_table = self.config.app_config().query.default_table.clone();
+        let mut all_tasks = Vec::new();
+
+        for group in &groups {
+            // Collect all unique tags from charts in this group
+            let mut group_tags: Vec<String> = group
+                .charts
+                .iter()
+                .flat_map(|chart| chart.tags.iter().cloned())
+                .collect();
+            group_tags.sort();
+            group_tags.dedup();
+
+            if group_tags.is_empty() {
+                continue;
+            }
+            // Warmup recent 3 days for each group
+            let strategy = RecentTimeRangeStrategy::new(&default_table, group_tags, 3);
+            all_tasks.extend(strategy.generate_tasks());
+        }
+
+        if all_tasks.is_empty() {
+            info!(target: "industry_vis::state", "没有预热任务，跳过");
+            return Ok(());
+        }
+
+        info!(target: "industry_vis::state",
+            "开始缓存预热: {} 个分组, {} 个任务",
+            groups.len(), all_tasks.len()
+        );
+
+        // Execute warmup
+        let warmer = CacheWarmer::new(Arc::clone(&self.cache));
+        let progress = warmer
+            .warmup(all_tasks, |task| {
+                let source = query_handle.source.clone();
+                let table = task.table.clone();
+                let start = task.start_time.clone();
+                let end = task.end_time.clone();
+                let tags = task.tags.clone();
+                async move {
+                    source
+                        .query_history(&table, &start, &end, tags.as_deref())
+                        .await
+                }
+            })
+            .await?;
+
+        info!(target: "industry_vis::state",
+            "缓存预热完成: 成功 {}, 失败 {}, 总计 {}",
+            progress.success_count, progress.failure_count, progress.total
+        );
+
+        Ok(())
+    }
+
+    /// 预热单个分组的缓存（1天数据）
+    ///
+    /// 用于进入分组时异步预热，不阻塞用户操作。
+    pub async fn warmup_group(&self, group_id: &str) -> AppResult<()> {
+        use tracing::{debug, info, warn};
+
+        // Get query service handle
+        let query_handle = match self.query_service() {
+            Some(handle) => handle,
+            None => {
+                warn!(target: "industry_vis::state", "连接池未初始化，无法执行分组预热");
+                return Ok(());
+            }
+        };
+
+        // Find the specific group
+        let group = match self.tag_group_service.get_group(group_id) {
+            Some(g) => g,
+            None => {
+                debug!(target: "industry_vis::state", "分组不存在: {}", group_id);
+                return Ok(());
+            }
+        };
+
+        // Collect all unique tags from charts in this group
+        let mut group_tags: Vec<String> = group
+            .charts
+            .iter()
+            .flat_map(|chart| chart.tags.iter().cloned())
+            .collect();
+        group_tags.sort();
+        group_tags.dedup();
+
+        if group_tags.is_empty() {
+            debug!(target: "industry_vis::state", "分组 {} 没有标签，跳过预热", group_id);
+            return Ok(());
+        }
+
+        // Generate warmup tasks for 1 day only
+        let default_table = self.config.app_config().query.default_table.clone();
+        let strategy = RecentTimeRangeStrategy::new(&default_table, group_tags, 1);
+        let tasks = strategy.generate_tasks();
+
+        if tasks.is_empty() {
+            return Ok(());
+        }
+
+        debug!(target: "industry_vis::state",
+            "开始分组预热: {} ({}), {} 个任务",
+            group.name, group_id, tasks.len()
+        );
+
+        // Execute warmup
+        let warmer = CacheWarmer::new(Arc::clone(&self.cache));
+        let progress = warmer
+            .warmup(tasks, |task| {
+                let source = query_handle.source.clone();
+                let table = task.table.clone();
+                let start = task.start_time.clone();
+                let end = task.end_time.clone();
+                let tags = task.tags.clone();
+                async move {
+                    source
+                        .query_history(&table, &start, &end, tags.as_deref())
+                        .await
+                }
+            })
+            .await?;
+
+        info!(target: "industry_vis::state",
+            "分组预热完成: {} - 成功 {}, 失败 {}",
+            group.name, progress.success_count, progress.failure_count
+        );
+
+        Ok(())
+    }
 }
 
 /// 简化的应用状态（用于无需连接池的场景）
@@ -204,15 +375,13 @@ impl QueryServiceHandle {
             processing_config,
         );
 
-        if !force_refresh {
-            if let Some(cached_records) = self.cache.get(&cache_key).await {
-                info!(target: "industry_vis::query_service",
-                    "缓存命中，返回 {} 条记录", cached_records.len()
-                );
-                let total = cached_records.len();
-                let records = apply_pagination(cached_records, params.offset, params.limit);
-                return Ok(QueryResult { records, total });
-            }
+        if !force_refresh && let Some(cached_records) = self.cache.get(&cache_key).await {
+            info!(target: "industry_vis::query_service",
+                "缓存命中，返回 {} 条记录", cached_records.len()
+            );
+            let total = cached_records.len();
+            let records = apply_pagination(cached_records, params.offset, params.limit);
+            return Ok(QueryResult { records, total });
         }
 
         let records = self
@@ -254,19 +423,17 @@ impl QueryServiceHandle {
             processing_config,
         );
 
-        if !force_refresh {
-            if let Some(cached_records) = self.cache.get(&cache_key).await {
-                let query_time_ms = start_time.elapsed().as_millis() as u64;
-                let total_processed = cached_records.len();
-                let series = processing::records_to_series(&cached_records);
-                return Ok(QueryResultV2 {
-                    series,
-                    total_raw: total_processed,
-                    total_processed,
-                    cache_hit: true,
-                    query_time_ms,
-                });
-            }
+        if !force_refresh && let Some(cached_records) = self.cache.get(&cache_key).await {
+            let query_time_ms = start_time.elapsed().as_millis() as u64;
+            let total_processed = cached_records.len();
+            let series = processing::records_to_series(&cached_records);
+            return Ok(QueryResultV2 {
+                series,
+                total_raw: total_processed,
+                total_processed,
+                cache_hit: true,
+                query_time_ms,
+            });
         }
 
         let records = self

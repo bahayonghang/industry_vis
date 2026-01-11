@@ -26,8 +26,8 @@ pub struct CacheConfig {
 impl Default for CacheConfig {
     fn default() -> Self {
         Self {
-            max_entries: 50,  // 最多缓存 50 个查询结果
-            ttl_seconds: 300, // 5 分钟过期
+            max_entries: 200,  // 最多缓存 200 个查询结果（历史数据查询场景）
+            ttl_seconds: 1800, // 30 分钟过期（历史数据不变，长 TTL 安全）
         }
     }
 }

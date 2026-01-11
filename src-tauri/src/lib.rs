@@ -26,15 +26,24 @@ pub mod services;
 pub mod state;
 
 use commands::*;
+use once_cell::sync::OnceCell;
 use state::AppState;
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{async_runtime, Manager, RunEvent, Url};
+use tauri::{AppHandle, Manager, RunEvent, Url, async_runtime};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tokio::sync::RwLock;
 use tracing::info;
+
+/// Global AppHandle for event emission from background tasks
+static APP_HANDLE: OnceCell<AppHandle> = OnceCell::new();
+
+/// Get the global AppHandle (available after Tauri setup)
+pub fn get_app_handle() -> Option<&'static AppHandle> {
+    APP_HANDLE.get()
+}
 
 fn check_dev_server_status(dev_url: &Url) -> Option<String> {
     let host = dev_url.host_str()?;
@@ -55,14 +64,18 @@ fn check_dev_server_status(dev_url: &Url) -> Option<String> {
             return Some(format!(
                 "开发端口 {} 无法访问，可能被占用或开发服务器未启动。\n请确认 Vite 已启动且端口一致。",
                 port
-            ))
+            ));
         }
     };
 
     let _ = stream.set_read_timeout(Some(Duration::from_millis(800)));
     let _ = stream.set_write_timeout(Some(Duration::from_millis(800)));
 
-    let path = if dev_url.path().is_empty() { "/" } else { dev_url.path() };
+    let path = if dev_url.path().is_empty() {
+        "/"
+    } else {
+        dev_url.path()
+    };
     let request = format!(
         "GET {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n",
         path, host
@@ -117,22 +130,25 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            // Store global AppHandle for event emission
+            let _ = APP_HANDLE.set(app.handle().clone());
+
             // 开发环境检查 devUrl 端口占用情况并提示
-            if cfg!(debug_assertions) {
-                if let Some(dev_url) = app.config().build.dev_url.clone() {
-                    let handle = app.handle().clone();
-                    std::thread::spawn(move || {
-                        std::thread::sleep(Duration::from_millis(1200));
-                        if let Some(message) = check_dev_server_status(&dev_url) {
-                            handle
-                                .dialog()
-                                .message(message)
-                                .kind(MessageDialogKind::Warning)
-                                .buttons(MessageDialogButtons::Ok)
-                                .show(|_| {});
-                        }
-                    });
-                }
+            if cfg!(debug_assertions)
+                && let Some(dev_url) = app.config().build.dev_url.clone()
+            {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(Duration::from_millis(1200));
+                    if let Some(message) = check_dev_server_status(&dev_url) {
+                        handle
+                            .dialog()
+                            .message(message)
+                            .kind(MessageDialogKind::Warning)
+                            .buttons(MessageDialogButtons::Ok)
+                            .show(|_| {});
+                    }
+                });
             }
             Ok(())
         })
@@ -143,6 +159,7 @@ pub fn run() {
             save_config,
             test_connection,
             get_connection_status,
+            get_pool_state,
             // 数据查询
             get_available_tags,
             search_tags,
@@ -152,6 +169,7 @@ pub fn run() {
             // 缓存管理
             clear_cache,
             get_cache_stats,
+            warmup_group,
             // 标签分组
             list_tag_groups,
             create_tag_group,
@@ -177,6 +195,7 @@ pub fn run() {
             tracing::warn!(target: "industry_vis::lib", "后台初始化连接池失败: {}", e);
         } else {
             tracing::info!(target: "industry_vis::lib", "后台初始化连接池成功");
+            // 注意：缓存预热已移至进入分组时按需触发，不再在启动时执行
         }
     });
 
